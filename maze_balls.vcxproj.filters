@@ -1,0 +1,116 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Form Files">
+      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
+      <Extensions>ui</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>moc;h;cpp</Extensions>
+      <SourceControlFiles>False</SourceControlFiles>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{1a7fd665-0757-48cf-98f6-2897d4096d12}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\MyLib">
+      <UniqueIdentifier>{bfb0b098-c4e2-460b-bd03-0b44b071b76d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="MazeBalls.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="MyLib\general.cpp">
+      <Filter>src\MyLib</Filter>
+    </ClCompile>
+    <ClCompile Include="MyLib\GLTexture.cpp">
+      <Filter>src\MyLib</Filter>
+    </ClCompile>
+    <ClCompile Include="MyLib\GLWidget.cpp">
+      <Filter>src\MyLib</Filter>
+    </ClCompile>
+    <ClCompile Include="MyLib\Mat.cpp">
+      <Filter>src\MyLib</Filter>
+    </ClCompile>
+    <ClCompile Include="MyLib\ShaderProgram.cpp">
+      <Filter>src\MyLib</Filter>
+    </ClCompile>
+    <ClCompile Include="MyLib\Shaders.cpp">
+      <Filter>src\MyLib</Filter>
+    </ClCompile>
+    <ClCompile Include="MyLib\BaseGLWidget.cpp">
+      <Filter>src\MyLib</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshControl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="MazeBalls.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="MazeBalls.qrc">
+      <Filter>src</Filter>
+    </QtRcc>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="MazeBalls.h">
+      <Filter>src</Filter>
+    </QtMoc>
+    <QtMoc Include="MyLib\GLWidget.h">
+      <Filter>src\MyLib</Filter>
+    </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MyLib\BaseGLWidget.h">
+      <Filter>src\MyLib</Filter>
+    </ClInclude>
+    <ClInclude Include="MyLib\general.h">
+      <Filter>src\MyLib</Filter>
+    </ClInclude>
+    <ClInclude Include="MyLib\GLTexture.h">
+      <Filter>src\MyLib</Filter>
+    </ClInclude>
+    <ClInclude Include="MyLib\Mat.h">
+      <Filter>src\MyLib</Filter>
+    </ClInclude>
+    <ClInclude Include="MyLib\MatStack.h">
+      <Filter>src\MyLib</Filter>
+    </ClInclude>
+    <ClInclude Include="MyLib\Quaternion.h">
+      <Filter>src\MyLib</Filter>
+    </ClInclude>
+    <ClInclude Include="MyLib\ShaderProgram.h">
+      <Filter>src\MyLib</Filter>
+    </ClInclude>
+    <ClInclude Include="MyLib\Shaders.h">
+      <Filter>src\MyLib</Filter>
+    </ClInclude>
+    <ClInclude Include="MyLib\Vec.h">
+      <Filter>src\MyLib</Filter>
+    </ClInclude>
+    <ClInclude Include="MyLib\glGlob.h">
+      <Filter>src\MyLib</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshControl.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
