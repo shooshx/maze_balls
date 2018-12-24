@@ -1,5 +1,6 @@
 #include "MeshControl.h"
 #include "MazeBalls.h"
+#include <fstream>
 
 
 #ifdef EMSCRIPTEN
@@ -26,6 +27,8 @@ void MeshControl::initialized()
     m_progFlat.init();
     mglCheckErrorsC("progs");
 
+    m_lightPos = Vec3(0.0, 20.0, 50.0);
+
     /*m_progNoise.init();
     {
         ProgramUser pu(&m_progNoise);
@@ -35,21 +38,29 @@ void MeshControl::initialized()
     m_doc->run();
 }
 
-#ifdef EMSCRIPTEN
-class JsGlTexture : public GlTexture
-{
-public:
-    void registerBind(const char* imgname) {
-        EM_ASM_( registerTexBind(Pointer_stringify($0), $1), imgname, m_obj);
-    }
-};
-#endif
 
-// called in the initialization
-// preps the textures in the pieces bucket for the xml loading
-void MeshControl::initTex()
-{
 
+void MeshControl::paintBall(float zv, const MeshDisp& meshdisp, bool mirrorX)
+{
+    //m_bgl->modelMinMax(meshdisp.m->m_pmin, meshdisp.m->m_pmax);
+    m_bgl->model.push();
+    m_bgl->model.identity();
+    float xzv = mirrorX ? -zv : zv;
+    m_bgl->model.scale(xzv, zv, zv);
+    m_bgl->model.translate(meshdisp.translate); // move it to the right side
+    m_bgl->model.mult(m_bgl->model.peek(1)); // then do the rotation
+
+    m_progFlat.setModelMat(m_bgl->model.cur());
+    m_progFlat.trans.set(m_bgl->transformMat());
+    m_progFlat.lightPos.set(m_lightPos);
+    m_bgl->model.pop();
+
+    //glEnable(GL_POLYGON_OFFSET_FILL);
+    //glPolygonOffset(1.0, 1.0);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    meshdisp.m->m_uColor = Vec3(1.0, 0.4, 0.4);
+    meshdisp.m->paint(false, false);
 }
 
 void MeshControl::myPaintGL(bool inChoise)
@@ -57,7 +68,7 @@ void MeshControl::myPaintGL(bool inChoise)
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (!m_mesh) 
+    if (m_meshes.size() != 2) 
         return;
 
 
@@ -65,55 +76,68 @@ void MeshControl::myPaintGL(bool inChoise)
 
     ProgramUser u(&m_progFlat);
 
+    paintBall(zv, m_meshes[0], false);
+    paintBall(zv, m_meshes[1], true);
+
+
+   /* if (false) { // lines
+        glPolygonOffset(0, 0);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        m_mesh->m_uColor = Vec3(0.0, 0.0, 0.0);
+        m_mesh->paint(inChoise, true);
+    }*/
+
+}
+
+void MeshControl::drawTargets(bool inChoise)
+{
+}
+
+
+
+bool MeshControl::scrDrag(bool ctrlPressed, int dx, int dy)
+{
+    if (!ctrlPressed)
+        return false;
+    Mat4 m;
+    m.identity();
+    m.rotate((float)dy, 1, 0, 0);
+    m.rotate((float)dx, 0, 1, 0);
+    m_lightPos = m.transformVec(m_lightPos);
+
+    return true;
+}
+
+
+
+void MeshControl::saveBall(const MeshDisp& meshdisp, ofstream& f, int* vtx_offset, bool mirrorX)
+{
+    float zv = 1.0;
     m_bgl->model.push();
-    m_bgl->model.scale(zv, zv, zv);
+    m_bgl->model.identity();
+    float xzv = mirrorX ? -zv : zv;
+    m_bgl->model.scale(xzv, zv, zv);
+    m_bgl->model.translate(meshdisp.translate); // move it to the right side
+    m_bgl->model.mult(m_bgl->model.peek(1)); // then do the rotation
 
-
-    m_bgl->modelMinMax(m_mesh->m_pmin, m_mesh->m_pmax);
-    m_progFlat.trans.set(m_bgl->transformMat());
-
-    glEnable(GL_POLYGON_OFFSET_FILL);
-
-    glPolygonOffset(1.0, 1.0);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    m_mesh->m_uColor = Vec3(1.0, 0.4, 0.4);
-    m_mesh->paint(inChoise, false);
-
-    glPolygonOffset(0, 0);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    m_mesh->m_uColor = Vec3(0.0, 0.0, 0.0);
-    m_mesh->paint(inChoise, true);
-    
+    Mesh mcopy = *meshdisp.m;
+    mcopy.transform(m_bgl->model.cur());
+    mcopy.save(f, vtx_offset, true);
 
     m_bgl->model.pop();
 }
 
-
-
-void MeshControl::drawTargets(bool inChoise)
+void MeshControl::save(const string& path) 
 {
-
-
+    ofstream f(path.c_str());
+    if (!f.good()) {
+        cout << "Failed opening path for mesh save " << path << endl;
+        return;
+    }
+    int vtx_offset = 0;
+    saveBall(m_meshes[0], f, &vtx_offset, false);
+    saveBall(m_meshes[1], f, &vtx_offset, true);
 }
 
 
 
-void MeshControl::scrPress(bool rightButton, int x, int y)
-{
-
-}
-
-void MeshControl::scrRelease(bool rightButton, int x, int y)
-{
-
-}
-
-bool MeshControl::scrMove(bool rightButton, bool ctrlPressed, int x, int y)
-{
-    return false;
-}
-
-bool MeshControl::scrDblClick(bool hasCtrl, int x, int y)
-{ 
-    return false;
-}

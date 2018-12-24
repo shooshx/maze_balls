@@ -28,6 +28,14 @@ public:
         return m[x + y*3];
     }
 
+    Vec3 transformNormal(const Vec3& vec) const
+    { 
+        Vec3 outVec;
+        outVec.v[0] = m[0] * vec[0] + m[3] * vec[1] + m[6] * vec[2];
+        outVec.v[1] = m[1] * vec[0] + m[4] * vec[1] + m[7] * vec[2];
+        outVec.v[2] = m[2] * vec[0] + m[5] * vec[1] + m[8] * vec[2];
+        return outVec;
+    }
 
     float m[9];
 };

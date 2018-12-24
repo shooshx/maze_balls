@@ -360,6 +360,8 @@ bool MyObject::buildHalfEdges(THalfEdgeList& lst)
     return true;
 }
 
+extern "C" unsigned long __stdcall GetTickCount();
+
 
 void MyObject::subdivide(bool smooth, bool clear_prev)
 {
@@ -367,8 +369,12 @@ void MyObject::subdivide(bool smooth, bool clear_prev)
         m_alloc->m_hePool.clear();
         m_lasthelst.clear();
     }
-    m_lasthelst.reserve(5000);
+    auto startTime = GetTickCount();
+    //m_lasthelst.reserve(5000);
+    m_lasthelst.reserve(nPolys * 4 + 100);
     buildHalfEdges(m_lasthelst);
+
+    cout << "start poly=" << nPolys << "  points=" << nPoints << "  he=" << m_lasthelst.size() << endl;
 
     // face points
     for(int pli = 0; pli < nPolys; ++pli)
@@ -501,16 +507,19 @@ void MyObject::subdivide(bool smooth, bool clear_prev)
     if (smooth)
     {
         // go over all the points the the points array of the object. these are the original points
-        for (int i = 0; i < nPoints; ++i)
+        for (int i = 0; i < nPoints; ++i) {
             points[i]->p = points[i]->n;
+            points[i]->touched = false;
+        }
     }
 
     vectorify();
+    cout << "   subdivided poly=" << nPolys << "  points=" << nPoints << "  time=" << (GetTickCount() - startTime) << " msec" << endl;
 }
 
 
 
-void MyObject::toMesh(Mesh& mesh, bool quads_to_tri, bool normals) 
+void MyObject::toMesh(Mesh& mesh, bool quads_to_tri, bool normals, bool poly_reverse) 
 {
     mesh.clear();
     if (nPolys == 0)
@@ -526,15 +535,30 @@ void MyObject::toMesh(Mesh& mesh, bool quads_to_tri, bool normals)
             MyPoint *curpn = curpl.vtx[pni];
             int index = 0;
             if (vtxrep.add(curpn->p, &index)) {
-                if (normals)
+                if (normals) {
                     mesh.m_normals.push_back(curpn->n);
+                }
                 //mesh.m_texCoord.push_back(Vec2(curpl.texAncs[pni].x, curpl.texAncs[pni].y));
                 mesh.m_color4.push_back(Vec4(curpn->col.r, curpn->col.g, curpn->col.b, 1.0));
             }
             qidx[pni] = index;
             //if (quads)
-            mesh.m_idx.push_back(index);
+            //mesh.m_idx.push_back(index);
         }
+
+        if (!poly_reverse) {
+            mesh.m_idx.push_back(qidx[0]);
+            mesh.m_idx.push_back(qidx[1]);
+            mesh.m_idx.push_back(qidx[2]);
+            mesh.m_idx.push_back(qidx[3]);
+        }
+        else {
+            mesh.m_idx.push_back(qidx[3]);
+            mesh.m_idx.push_back(qidx[2]);
+            mesh.m_idx.push_back(qidx[1]);
+            mesh.m_idx.push_back(qidx[0]);
+        }
+
         /*if (!quads) {
             mesh.m_idx.push_back(qidx[0]);
             mesh.m_idx.push_back(qidx[1]);

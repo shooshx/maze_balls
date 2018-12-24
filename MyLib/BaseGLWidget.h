@@ -35,6 +35,9 @@ public:
     virtual bool scrMove(bool rightButton, bool ctrlPressed, int x, int y) { return false; }
     virtual bool scrDblClick(bool ctrlPressed, int x, int y) { return false; }
 
+    // returns true if handled drag
+    virtual bool scrDrag(bool ctrlPressed, int dx, int dy) { return false; }
+
     virtual void clearChoise() {}
 
 protected:
@@ -67,7 +70,7 @@ public:
 
     void mousePress(int button, int x, int y);
     void mouseRelease(int button, int x, int y);
-    bool mouseMove(int buttons, int hasCtrl, int x, int y);
+    bool mouseMove(int buttons, int keyModify, int x, int y);
     bool mouseDoubleClick(bool hasCtrl, int x, int y);
     void mouseWheelEvent(int delta);
 

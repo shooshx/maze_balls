@@ -232,12 +232,26 @@ struct Vec3
         M_ASSERT(len != 0.0);
         v[0] /= len; v[1] /= len; v[2] /= len;
     }
+    Vec3 unitized() const {
+        Vec3 p = *this;
+        p.unitize();
+        return p;
+    }
 
     bool isNear(const Vec3& vert) const
     {
         return (abs(vert.x - x) < EPSILON) && 
                (abs(vert.y - y) < EPSILON) &&
                (abs(vert.z - z) < EPSILON);
+    }
+
+    Vec3 minus() {
+        return Vec3(-x, -y, -z);
+    }
+    void negate() {
+        x = -x;
+        y = -y;
+        z = -z;
     }
 
 

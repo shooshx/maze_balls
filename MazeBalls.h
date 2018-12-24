@@ -15,7 +15,7 @@ public:
     MazeBalls(QWidget *parent = Q_NULLPTR);
 
     void run();
-    void run_thread();
+    void make_ball(bool ridge_reverse, const Vec3& translate);
 
     void emit_update_mesh() {
         emit update_mesh();
@@ -23,6 +23,7 @@ public:
 
 private slots:
     void on_runBut_clicked();
+    void on_saveBut_clicked();
     void call_update_mesh();
 
 signals:

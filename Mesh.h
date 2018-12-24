@@ -40,6 +40,7 @@ public:
     int elemSize();
     int numElem();
     void save(const string& path, bool asObj);
+    void save(ofstream& f, int* vtx_offset, bool asObj);
     bool loadObj(const char* path);
 
     enum Type { NONE, LINES, TRIANGLES, QUADS, TRI_STRIP, TRI_FAN };
@@ -55,6 +56,7 @@ public:
         return m_addIdx.back();
     }
     void calcTrianglesNormals();
+    void calcQuadNormals(bool minus);
     void calcMinMax();
 
     struct CommonData {
@@ -70,6 +72,7 @@ public:
     void makeIdxBo(bool dealloc);
 
     void load(const char* name);
+    void transform(Mat4 model);
 
 public:
     Vec3 m_pmin, m_pmax;
@@ -81,7 +84,7 @@ public:
     vector<Vec4> m_color4;
     vector<Vec4b> m_name;
     vector<float> m_tag; // general purpose data used by the shaders - type of build tile
-    vector<ushort> m_idx;
+    vector<uint> m_idx;
     Vec3 m_uColor;
     Vec4 m_singleColorForAtt;
 

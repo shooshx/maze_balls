@@ -33,6 +33,28 @@ void Mesh::calcTrianglesNormals() {
         m_normals[i].unitize();
 }
 
+void Mesh::calcQuadNormals(bool minus) {
+    m_normals.clear();
+    m_normals.resize(m_vtx.size());
+    for (int i = 0, ni = 0; i < m_idx.size(); i += 4) {
+        Vec3 fn1 = Vec3::triangleNormal(m_vtx[m_idx[i + 2]], m_vtx[m_idx[i + 1]], m_vtx[m_idx[i]]);
+        Vec3 fn2 = Vec3::triangleNormal(m_vtx[m_idx[i + 2]], m_vtx[m_idx[i]], m_vtx[m_idx[i + 3]]);
+        Vec3 fn = fn1 + fn2;
+        fn.unitize();
+        m_normals[m_idx[i]] += fn;
+        m_normals[m_idx[i + 1]] += fn;
+        m_normals[m_idx[i + 2]] += fn;
+        m_normals[m_idx[i + 3]] += fn;
+    }
+    for (int i = 0; i < m_normals.size(); ++i)
+        m_normals[i].unitize();
+    if (minus)
+        for (int i = 0; i < m_normals.size(); ++i)
+            m_normals[i].negate();
+
+    m_normBo.setData(m_normals);
+}
+
 void Mesh::makeSelfBos(bool andDealloc) {
     if (!m_vtxBo.setData(m_vtx))
         return;
@@ -108,13 +130,13 @@ void Mesh::paint(bool names, bool force_uni_color) const
     mglCheckErrors("set-uni");
     bprog->vtx.setArr(*vbo);
 
-    /*if (nprog != nullptr) {
+    if (fprog != nullptr) {
         if (m_hasNormals) {
-            nprog->normal.setArr(*nbo);
+            fprog->normal.setArr(*nbo);
         }
         else 
-            nprog->normal.disableArr();
-    }*/
+            fprog->normal.disableArr();
+    }
     //cout << "~1-----------" << endl;
     if (names) {
       //  cout << "~2" << endl;
@@ -171,7 +193,7 @@ void Mesh::paint(bool names, bool force_uni_color) const
     if (m_hasIdx) {
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_idxBo.m_buf);
-        glDrawElements(gltype, m_idxBo.m_size, GL_UNSIGNED_SHORT, 0);
+        glDrawElements(gltype, m_idxBo.m_size, GL_UNSIGNED_INT, 0);
     }
     else {
         glDrawArrays(gltype, 0, vbo->m_size);
@@ -214,6 +236,13 @@ void Mesh::save(const string& path, bool asObj)
         cout << "Failed opening path for mesh save " << path << endl;
         return;
     }
+    int vtx_offset = 0;
+    save(f, &vtx_offset, asObj);
+    cout << "wrote " << path << endl;
+}
+
+void Mesh::save(ofstream& f, int* vtx_offset, bool asObj)
+{
     M_ASSERT(m_vtx.size() > 0 && m_idx.size() > 0);
 
     // short hand format for unification
@@ -231,14 +260,19 @@ void Mesh::save(const string& path, bool asObj)
         
     }
 
+    int offset = *vtx_offset;
     if (m_type == QUADS)
     {
         if ((m_idx.size() % 4) != 0)
             throw std::runtime_error("bad size");
         for (int i = 0; i < m_idx.size(); i += 4) {
             if (asObj) {
-                f << "f " << m_idx[i] + 1 << "//" << m_idx[i] + 1 << " " << m_idx[i + 1] + 1 << "//" << m_idx[i + 1] + 1 << " " << m_idx[i + 2] + 1 << "//" << m_idx[i + 2] + 1 << "\n";  // obj
-                f << "f " << m_idx[i] + 1 << "//" << m_idx[i] + 1 << " " << m_idx[i + 2] + 1 << "//" << m_idx[i + 2] + 1 << " " << m_idx[i + 3] + 1 << "//" << m_idx[i + 3] + 1 << "\n";  // obj
+                f << "f " << m_idx[i] + offset + 1 << "//" << m_idx[i] + offset + 1 << " " 
+                          << m_idx[i + 1] + offset + 1 << "//" << m_idx[i + 1] + offset + 1 << " " 
+                          << m_idx[i + 2] + offset + 1 << "//" << m_idx[i + 2] + offset + 1 << "\n";  // obj
+                f << "f " << m_idx[i] + offset + 1 << "//" << m_idx[i] + offset + 1 << " " 
+                          << m_idx[i + 2] + offset + 1 << "//" << m_idx[i + 2] + offset + 1 << " " 
+                          << m_idx[i + 3] + offset + 1 << "//" << m_idx[i + 3] + offset + 1 << "\n";  // obj
                // f << "f " << m_idx[i] + 1 << " " << m_idx[i + 2] + 1 << " " << m_idx[i + 3] + 1 << "\n"; // obj
             }
             else {
@@ -249,6 +283,7 @@ void Mesh::save(const string& path, bool asObj)
     else {
         throw std::runtime_error("can't save triangles");
     }
+    *vtx_offset += m_vtx.size();
 }
 
 void Mesh::calcMinMax() {
@@ -314,6 +349,17 @@ bool Mesh::loadObj(const char* path)
 
     return true;
 
+}
+
+void Mesh::transform(Mat4 model)
+{
+    for(auto& vtx: m_vtx) {
+        vtx = model.transformVec(vtx);
+    }
+    Mat3 mnormal = model.toNormalsTrans();
+    for(auto& normal: m_normals) {
+        normal = mnormal.transformNormal(normal);
+    }
 }
 
 

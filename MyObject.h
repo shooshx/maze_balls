@@ -47,7 +47,7 @@ public:
     /// \arg smooth should the subdivision be averaged or flat (no averaging)
     void subdivide(bool smooth, bool clear_prev);
 
-    void toMesh(Mesh& mesh, bool quads_to_tri, bool normals);
+    void toMesh(Mesh& mesh, bool quads_to_tri, bool normals, bool poly_reverse);
 
 private:
     ///////////////////// structures for startup

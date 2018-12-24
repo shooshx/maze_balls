@@ -30,13 +30,25 @@ public:
 
 class FlatProgram : public BaseProgram {
 public:
-    FlatProgram() : colorAatt("colorAatt", this), force_uni_color("force_uni_color", this)
+    FlatProgram() : colorAatt("colorAatt", this), force_uni_color("force_uni_color", this),
+                    normal("normal", this), modelMat("modelMat", this), normalMat("normalMat", this),
+                    lightPos("lightPos", this)
     {}
 	virtual void getCodes() override;
     DEF_CLASS(PCLS_FLAT);
     
     AttribParam colorAatt;
     IntUniform force_uni_color;
+    Vec3Attrib normal;
+
+    Mat4Uniform modelMat;
+    Mat3Uniform normalMat;
+    Vec3Uniform lightPos;
+
+    void setModelMat(const Mat4& m) {
+        modelMat.set(m);
+        normalMat.set(m.toNormalsTrans());
+    }
 };
 
 

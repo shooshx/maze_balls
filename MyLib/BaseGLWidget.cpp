@@ -432,11 +432,11 @@ void BaseGLWidget::mouseWheelEvent(int delta)
     invalidateChoice();
 }
 
-bool BaseGLWidget::mouseMove(int buttons, int hasCtrl, int x, int y)
+bool BaseGLWidget::mouseMove(int buttons, int keyModify, int x, int y)
 {
     bool needupdate = false;
     if (m_handler)
-        needupdate = m_handler->scrMove(buttons != 0, hasCtrl, x, y);
+        needupdate = m_handler->scrMove(buttons != 0, (keyModify & 1), x, y);
     if (buttons == 0) {
         return needupdate;
     }
@@ -446,10 +446,21 @@ bool BaseGLWidget::mouseMove(int buttons, int hasCtrl, int x, int y)
     int dx = x - m_lastPos.x;
     int dy = y - m_lastPos.y;
 
+    if (m_handler) {
+        if (m_handler->scrDrag(keyModify & 1, dx, dy)) {
+            m_lastPos = Vec2i(x, y);
+            return true;
+        }
+    }
+
+    auto axis = m_axis;
+    if (keyModify & 2) { // shift
+        axis = XZaxis;
+    }
     switch (m_mouseAct)
     {			// act based on the current action
     case Rotate:
-        rotate(m_axis, dx, dy);
+        rotate(axis, dx, dy);
         break;
     case Translate:
         translate(dx, dy);

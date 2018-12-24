@@ -41,9 +41,12 @@ public:
             return m_cur.m;
         if (m_s.size() < back)
             throw runtime_error("matrix stack underflow(peek)");
-        return m_s[m_s.size() - back].m;
+        return m_s[m_s.size() - back].m; // top of stack is already the previous one
     }
 
+    void translate(const Vec3& v) {
+        m_cur.m.translate(v.x, v.y, v.z);
+    }
     void translate(float x, float y, float z) {
         m_cur.m.translate(x, y, z);
     }

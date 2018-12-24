@@ -413,4 +413,5 @@ template bool GlBuffer::setData(const vector<Vec4>& v);
 template bool GlBuffer::setData(const vector<float>& v);
 template bool GlBuffer::setData(const vector<Vec4b>& v);
 template bool GlBuffer::setData(const vector<ushort>& v);
+template bool GlBuffer::setData(const vector<uint>& v);
 
