@@ -18,6 +18,11 @@ public:
     void reCalcSlvMinMax();
     virtual void switchIn() override;
 
+    void setMesh(Mesh* m) {
+        m_mesh.reset(m);
+        m_bgl->setNewMinMax(m->m_pmin, m->m_pmax, true);
+    }
+
 public:
 
     FlatProgram m_progFlat; // for choice selection

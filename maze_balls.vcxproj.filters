@@ -21,6 +21,9 @@
     <Filter Include="src\MyLib">
       <UniqueIdentifier>{bfb0b098-c4e2-460b-bd03-0b44b071b76d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\alg">
+      <UniqueIdentifier>{94a5e63a-24dd-4a65-ab52-84347faba22a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -55,6 +58,9 @@
     </ClCompile>
     <ClCompile Include="Mesh.cpp">
       <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="MyObject.cpp">
+      <Filter>src\alg</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -111,6 +117,18 @@
     </ClInclude>
     <ClInclude Include="Mesh.h">
       <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="MyObject.h">
+      <Filter>src\alg</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryMgmt.h">
+      <Filter>src\alg</Filter>
+    </ClInclude>
+    <ClInclude Include="MyPoint.h">
+      <Filter>src\alg</Filter>
+    </ClInclude>
+    <ClInclude Include="MyPolygon.h">
+      <Filter>src\alg</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

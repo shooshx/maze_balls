@@ -349,6 +349,7 @@ const char* errorText(uint code)
     }
 }
 
+#define CHECK_GL_ERR
 
 string mglCheckErrorsStr(const char* place)
 {

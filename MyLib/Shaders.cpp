@@ -8,13 +8,18 @@ precision highp float;
 uniform mat4 trans;
 uniform vec3 colorA;
 attribute vec3 vtx;
+attribute vec3 colorAatt;
+uniform int force_uni_color;
 
 varying vec3 color;
 
 // used for piece selection, not build selection
 void main()
 {	
-	color = colorA;
+    if (force_uni_color == 1)
+	    color = colorA;
+    else
+        color = colorAatt;
     gl_Position = trans * vec4(vtx, 1.0);
 }
 

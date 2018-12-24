@@ -126,6 +126,7 @@
     <ClCompile Include="MyLib\Mat.cpp" />
     <ClCompile Include="MyLib\ShaderProgram.cpp" />
     <ClCompile Include="MyLib\Shaders.cpp" />
+    <ClCompile Include="MyObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="MazeBalls.h" />
@@ -137,6 +138,7 @@
     <QtRcc Include="MazeBalls.qrc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MemoryMgmt.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MeshControl.h" />
     <ClInclude Include="MyLib\BaseGLWidget.h" />
@@ -149,6 +151,9 @@
     <ClInclude Include="MyLib\ShaderProgram.h" />
     <ClInclude Include="MyLib\Shaders.h" />
     <ClInclude Include="MyLib\Vec.h" />
+    <ClInclude Include="MyObject.h" />
+    <ClInclude Include="MyPoint.h" />
+    <ClInclude Include="MyPolygon.h" />
     <QtMoc Include="MyLib\GLWidget.h">
       <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName)\.;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtOpenGL;$(QTDIR)\include\QtOpenGLExtensions;$(QTDIR)\include\QtWebEngine;$(QTDIR)\include\QtWebEngineCore;$(QTDIR)\include\QtWidgets</IncludePath>
       <Define Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">UNICODE;_UNICODE;WIN32;_ENABLE_EXTENDED_ALIGNED_STORAGE;WIN64;QT_DLL;QT_CORE_LIB;QT_GUI_LIB;QT_OPENGL_LIB;QT_OPENGLEXTENSIONS_LIB;QT_WEBENGINE_LIB;QT_WEBENGINECORE_LIB;QT_WIDGETS_LIB</Define>

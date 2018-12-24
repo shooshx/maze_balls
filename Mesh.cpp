@@ -10,9 +10,9 @@ static uint glType(Mesh::Type t) {
     switch (t){
     case Mesh::LINES: return GL_LINES;
     case Mesh::TRIANGLES: return GL_TRIANGLES;
-//#ifdef QT_CORE_LIB
-//    case Mesh::QUADS: return GL_QUADS;
-//#endif
+#ifdef QT_CORE_LIB
+    case Mesh::QUADS: return GL_QUADS;
+#endif
     case Mesh::TRI_STRIP: return GL_TRIANGLE_STRIP;
     case Mesh::TRI_FAN: return GL_TRIANGLE_FAN;
     default: throw std::runtime_error("bad mesh type");
@@ -83,7 +83,7 @@ void Mesh::makeIdxBo(bool dealloc)
 }
 
 
-void Mesh::paint(bool names) const
+void Mesh::paint(bool names, bool force_uni_color) const
 {
     const GlArrayBuffer* vbo = &m_vtxBo;
     const GlArrayBuffer* nbo = &m_normBo;
@@ -103,6 +103,7 @@ void Mesh::paint(bool names) const
     BaseProgram* bprog = static_cast<BaseProgram*>(ShaderProgram::current());
     //NoiseSlvProgram* nprog = ShaderProgram::currenttTry<NoiseSlvProgram>();
     //BuildProgram* lprog = ShaderProgram::currenttTry<BuildProgram>(); 
+    FlatProgram* fprog = ShaderProgram::currenttTry<FlatProgram>();
 
     mglCheckErrors("set-uni");
     bprog->vtx.setArr(*vbo);
@@ -130,10 +131,11 @@ void Mesh::paint(bool names) const
         }*/
     }
     else {
-        if (m_hasColors) {
-            /*if (lprog != nullptr) {
-                lprog->colorAatt.setArr<Vec4>(m_colBo);
-            }*/
+        fprog->force_uni_color.set(force_uni_color ? 1 : 0);
+        if (m_hasColors && !force_uni_color) {
+            if (fprog != nullptr) {
+                fprog->colorAatt.setArr<Vec4>(m_colBo);
+            }
         }
         else 
         {
@@ -249,6 +251,15 @@ void Mesh::save(const string& path, bool asObj)
     }
 }
 
+void Mesh::calcMinMax() {
+    m_pmax = Vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    m_pmin = Vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+    for(const auto& v: m_vtx) {
+        m_pmax.pmax(v);
+        m_pmin.pmin(v);
+    }
+}
+
 bool Mesh::loadObj(const char* path)
 {
     ifstream ifs(path);
@@ -259,6 +270,7 @@ bool Mesh::loadObj(const char* path)
 
     m_pmax = Vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     m_pmin = Vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+    bool quads = false;
 
     while (!ifs.eof()) {
         string line;
@@ -276,7 +288,7 @@ bool Mesh::loadObj(const char* path)
             m_pmax.pmax(v);
             m_pmin.pmin(v);
         }
-        else if (line[0] == 'f') {
+        else if (line[0] == 'f' || line[0] == 'q') {
             int a = strtol(linep, &linep, 10);
             while (*linep != ' ' && linep < lineend)
                 ++linep;
@@ -284,11 +296,19 @@ bool Mesh::loadObj(const char* path)
             while (*linep != ' ' && linep < lineend)
                 ++linep;
             int c = strtol(linep, &linep, 10);
-            m_idx.insert(m_idx.end(), { (ushort)(a - 1), (ushort)(b - 1), (ushort)(c - 1) }); // indices area 1 based
+            if (line[0] == 'f')
+                m_idx.insert(m_idx.end(), { (ushort)(a - 1), (ushort)(b - 1), (ushort)(c - 1) }); // indices are 1 based
+            else {
+                while (*linep != ' ' && linep < lineend)
+                    ++linep;
+                int d = strtol(linep, &linep, 10);
+                m_idx.insert(m_idx.end(), { (ushort)(a - 1), (ushort)(b - 1), (ushort)(c - 1), (ushort)(d - 1) }); // indices are 1 based
+                quads = true;
+            }
         }
     }
 
-    m_type = TRIANGLES;
+    m_type = quads ? QUADS : TRIANGLES;
     m_hasIdx = true;
     makeSelfBos(false);
 

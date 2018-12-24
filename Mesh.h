@@ -35,7 +35,7 @@ public:
         m_singleColorForAtt = Vec4();
     }
 
-    void paint(bool names = false) const;
+    void paint(bool names, bool force_uni_color) const;
 
     int elemSize();
     int numElem();
@@ -55,6 +55,7 @@ public:
         return m_addIdx.back();
     }
     void calcTrianglesNormals();
+    void calcMinMax();
 
     struct CommonData {
         vector<Vec3> vtx;

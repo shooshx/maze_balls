@@ -77,13 +77,13 @@ void MeshControl::myPaintGL(bool inChoise)
     glPolygonOffset(1.0, 1.0);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     m_mesh->m_uColor = Vec3(1.0, 0.4, 0.4);
-    m_mesh->paint(inChoise);
+    m_mesh->paint(inChoise, false);
 
     glPolygonOffset(0, 0);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     m_mesh->m_uColor = Vec3(0.0, 0.0, 0.0);
-    m_mesh->paint(inChoise);
-
+    m_mesh->paint(inChoise, true);
+    
 
     m_bgl->model.pop();
 }

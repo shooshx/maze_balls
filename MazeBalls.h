@@ -15,9 +15,18 @@ public:
     MazeBalls(QWidget *parent = Q_NULLPTR);
 
     void run();
+    void run_thread();
+
+    void emit_update_mesh() {
+        emit update_mesh();
+    }
 
 private slots:
     void on_runBut_clicked();
+    void call_update_mesh();
+
+signals:
+    void update_mesh();
 
 private:
     Ui::MazeBallsClass ui;

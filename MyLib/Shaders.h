@@ -30,9 +30,13 @@ public:
 
 class FlatProgram : public BaseProgram {
 public:
+    FlatProgram() : colorAatt("colorAatt", this), force_uni_color("force_uni_color", this)
+    {}
 	virtual void getCodes() override;
     DEF_CLASS(PCLS_FLAT);
     
+    AttribParam colorAatt;
+    IntUniform force_uni_color;
 };
 
 
