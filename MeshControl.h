@@ -41,6 +41,9 @@ public:
     vector<MeshDisp> m_meshes;
     MazeBalls* m_doc;
     Vec3 m_lightPos;
+    Mat4 m_globalTransform; // rotate the entire scene (not just one ball)
+
+    Mesh m_planeMesh;
 
 
     void save(const string& path);
@@ -52,9 +55,10 @@ protected:
     virtual void myPaintGL(bool inChoise) override;
     virtual void drawTargets(bool inChoise);
 
-    virtual bool scrDrag(bool ctrlPressed, int dx, int dy) override;
+    virtual bool scrDrag(int keyModify, int dx, int dy) override;
 
     void paintBall(float zv, const MeshDisp& meshdisp, bool mirrorX);
+    void paintPlane();
 
     void transformForBall(float zv, bool mirrorX);
 

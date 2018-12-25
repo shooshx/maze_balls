@@ -36,7 +36,8 @@ public:
     virtual bool scrDblClick(bool ctrlPressed, int x, int y) { return false; }
 
     // returns true if handled drag
-    virtual bool scrDrag(bool ctrlPressed, int dx, int dy) { return false; }
+
+    virtual bool scrDrag(int keyModify, int dx, int dy) { return false; }
 
     virtual void clearChoise() {}
 
@@ -46,6 +47,10 @@ protected:
 
 #define MBUTTON_LEFT 1
 #define MBUTTON_RIGHT 2
+
+#define KEYMOD_CTRL 1
+#define KEYMOD_SHIFT 2
+#define KEYMOD_ALT 4
 
 class IProgressable {
 public:

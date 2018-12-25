@@ -436,7 +436,7 @@ bool BaseGLWidget::mouseMove(int buttons, int keyModify, int x, int y)
 {
     bool needupdate = false;
     if (m_handler)
-        needupdate = m_handler->scrMove(buttons != 0, (keyModify & 1), x, y);
+        needupdate = m_handler->scrMove(buttons != 0, (keyModify & KEYMOD_CTRL), x, y);
     if (buttons == 0) {
         return needupdate;
     }
@@ -447,14 +447,14 @@ bool BaseGLWidget::mouseMove(int buttons, int keyModify, int x, int y)
     int dy = y - m_lastPos.y;
 
     if (m_handler) {
-        if (m_handler->scrDrag(keyModify & 1, dx, dy)) {
+        if (m_handler->scrDrag(keyModify, dx, dy)) {
             m_lastPos = Vec2i(x, y);
             return true;
         }
     }
 
     auto axis = m_axis;
-    if (keyModify & 2) { // shift
+    if (keyModify & KEYMOD_SHIFT) { // shift
         axis = XZaxis;
     }
     switch (m_mouseAct)

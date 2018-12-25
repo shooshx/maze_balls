@@ -82,9 +82,9 @@ private:
 
 public:
     // add a point directly to the points repository, without duplicacy check.
-    inline void basicAddPoint(MyPoint *pnt);
+    void basicAddPoint(MyPoint *pnt);
     // add a polygon made of points in the repository, without duplicacy checks.
-    inline void basicAddPoly(MyPoint *inparr[], TexAnchor *ancs = nullptr);
+    void basicAddPoly(MyPoint *inparr[], TexAnchor *ancs = nullptr);
 
     typedef vector<HalfEdge*> THalfEdgeList;
 

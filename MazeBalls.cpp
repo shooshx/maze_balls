@@ -30,7 +30,10 @@ void MazeBalls::on_runBut_clicked()
 
 void MazeBalls::on_saveBut_clicked()
 {
-    m_meshHandler->save("C:\\Projects\\maze_balls\\output.obj");
+    // m_meshHandler->save("C:\\Projects\\maze_balls\\output.obj");
+
+    m_meshHandler->m_meshes[0].m->save("C:\\Projects\\maze_balls\\output_0.obj", true);
+    m_meshHandler->m_meshes[1].m->save("C:\\Projects\\maze_balls\\output_1.obj", true);
 }
 
 std::function<void(void)> g_update_emit;
@@ -153,7 +156,7 @@ void MazeBalls::make_ball(bool ridge_reverse, const Vec3& translate)
     load_mesh->loadObj(filename);
     load_mesh->m_uniformColor = true;
 
-    MyAllocator obj_alloc;
+    MyAllocator obj_alloc(61443, 81921, 61441);
     MyObject maze_obj(&obj_alloc); // the obj on which we DFS the maze
     //maze_obj.toMesh(*w_mesh, false, false);
 
@@ -184,7 +187,8 @@ void MazeBalls::make_ball(bool ridge_reverse, const Vec3& translate)
     w_mesh->calcQuadNormals(ridge_reverse);
     m_meshHandler->addMesh(w_mesh, translate);
 
-
+    obj_alloc.clear();
+    obj_alloc.checkMaxAlloc();
     //w_mesh->save("C:\\Projects\\maze_balls\\output.obj", true);
 
 }
@@ -197,9 +201,6 @@ void MazeBalls::run() {
 
     make_ball(false, Vec3(1,0,0));
     make_ball(true, Vec3(1,0,0));
-
-    //m_meshHandler->m_meshes[0].m->save("C:\\Projects\\maze_balls\\output_0.obj", true);
-    //m_meshHandler->m_meshes[1].m->save("C:\\Projects\\maze_balls\\output_1.obj", true);
 
     ui.glwidget->update();
 

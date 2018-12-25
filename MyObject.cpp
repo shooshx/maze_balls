@@ -110,13 +110,13 @@ void MyObject::addPoly(const Vec3& a, const Vec3& b, const Vec3& c, const Vec3& 
     plylst.push_back(nply);
 }
 
-inline void MyObject::basicAddPoint(MyPoint *pnt) 
+void MyObject::basicAddPoint(MyPoint *pnt) 
 { 
     pntlst.push_back(pnt); 
 }
 
 // add a polygon made of points in the repository, without duplicacy checks.
-inline void MyObject::basicAddPoly(MyPoint *inparr[], TexAnchor *ancs)
+void MyObject::basicAddPoly(MyPoint *inparr[], TexAnchor *ancs)
 { 
     MyPolygon *nply = m_alloc->m_polyPool.allocate();
     nply->init(inparr, ancs);

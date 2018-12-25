@@ -203,8 +203,9 @@ void GLWidget::rotate(EAxis axis, int x, int y)
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    int mod = ((event->modifiers() & Qt::ControlModifier) != 0) ? 1:0;
-    mod |= ((event->modifiers() & Qt::ShiftModifier) != 0) ? 2 : 0;
+    int mod = ((event->modifiers() & Qt::ControlModifier) != 0) ? KEYMOD_CTRL : 0;
+    mod |= ((event->modifiers() & Qt::ShiftModifier) != 0) ? KEYMOD_SHIFT : 0;
+    mod |= ((event->modifiers() & Qt::AltModifier) != 0) ? KEYMOD_ALT : 0;
     bool needpaint = BaseGLWidget::mouseMove((int)event->buttons(), mod, event->x(), event->y());
     if (needpaint) {
         updateGL();
