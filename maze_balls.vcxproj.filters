@@ -80,6 +80,9 @@
     <QtMoc Include="MyLib\GLWidget.h">
       <Filter>src\MyLib</Filter>
     </QtMoc>
+    <QtMoc Include="MyLib\AutoParam.h">
+      <Filter>src\MyLib</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyLib\BaseGLWidget.h">

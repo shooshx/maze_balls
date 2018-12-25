@@ -32,7 +32,8 @@ class FlatProgram : public BaseProgram {
 public:
     FlatProgram() : colorAatt("colorAatt", this), force_uni_color("force_uni_color", this),
                     normal("normal", this), modelMat("modelMat", this), normalMat("normalMat", this),
-                    lightPos("lightPos", this), globalT("globalT", this), projMat("projMat", this)
+                    lightPos("lightPos", this), globalT("globalT", this), projMat("projMat", this), 
+                    b_clip_top("b_clip_top", this)
     {}
 	virtual void getCodes() override;
     DEF_CLASS(PCLS_FLAT);
@@ -46,6 +47,7 @@ public:
     Mat3Uniform normalMat;
     Vec3Uniform lightPos;
     Mat4Uniform globalT;
+    IntUniform b_clip_top;
 
     void setModelMat(const Mat4& m) {
         modelMat.set(m);

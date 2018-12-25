@@ -47,17 +47,19 @@ void main()
 const char *code_flat_frag_glsl = R"---(
 precision highp float;
 
+uniform int b_clip_top;
 varying vec3 color;
 varying float lightIntensity;
 varying float trpos_y;
 
 void main (void)
 {			
-    if (trpos_y > 0) {
+    if (b_clip_top != 0 && trpos_y > 0) {
         discard;
     }
 		
 	gl_FragColor = vec4(color, 1.0) * lightIntensity;
+
 	//gl_FragColor = vec4(1.0, 0.5, 0.5, 1.0);
 }
 

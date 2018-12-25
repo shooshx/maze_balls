@@ -13,6 +13,18 @@ MazeBalls::MazeBalls(QWidget *parent)
     GLWidget::initFormat();
     ui.setupUi(this);
 
+    m_params.cross_section.mate(ui.crossCheck);
+    m_params.ridge_amplitude.mate(ui.amplitudeSpinBox);
+    m_params.rand_seed.mate(ui.randSeedSpinBox);
+    m_params.straigt_steps.mate(ui.straightSpinBox);
+    m_params.base_shape.mate(ui.shapeComboBox);
+    m_params.start_divs.mate(ui.startDivsSpinBox);
+    m_params.post_divs.mate(ui.postDivsSpinBox);
+
+    connect(&m_params, &ParamAggregate::changed, [this]() {
+        ui.glwidget->update();
+    });
+
     m_meshHandler = new MeshControl(ui.glwidget, this);
     
     ui.glwidget->m_handlers.push_back(m_meshHandler);
@@ -93,6 +105,9 @@ void createGraph(MyObject& obj, MyObject::THalfEdgeList& helst, Graph& graph)
 
 struct DfsState {
     int count = 0;
+    int direction_skips = 2;
+
+    Params* params;
 };
 
 void recDfs(MyPolygon* p, DfsState* state) 
@@ -103,13 +118,14 @@ void recDfs(MyPolygon* p, DfsState* state)
 
     //g_update_emit();
     HalfEdge* start_he = p->he;
-    if ((state->count % 2) == 0) {
-        int skips = rand() % 4;
-        for (int i = 0; i < skips; ++i) {
-            start_he = start_he->next;
-        }
+    // after how many steps in this direction, randomize the direction
+    if (state->params->straigt_steps > 0 && (state->count % state->params->straigt_steps) == 0) {
+        state->direction_skips = rand() % 4;
     }
     ++state->count;
+    for (int i = 0; i < state->direction_skips; ++i) {
+        start_he = start_he->next;
+    }
 
     HalfEdge* he = start_he;
     for(int i = 0; i < 4; ++i) {
@@ -124,25 +140,26 @@ void recDfs(MyPolygon* p, DfsState* state)
     M_ASSERT(he == start_he); // sanity - reached around
 }
 
-void mazeDfs(MyObject& obj) 
+void mazeDfs(MyObject& obj, Params* params) 
 {
     DfsState state;
+    state.params = params;
     recDfs(obj.poly[0], &state);
 }
 
 //#define OFFSET (0.085)
-#define OFFSET (0.11)
+//#define OFFSET (0.11)
 
-void raiseRidges(MyObject& obj, bool reverse)
+void raiseRidges(MyObject& obj, bool reverse, float amplitude)
 {
     for(auto& pnt: obj.points) {
         Vec3 n = pnt->p.unitized();
         pnt->n = n;
         if (pnt->touched == reverse) { // xor
-            pnt->p = n * (1.0 + OFFSET); // 0.9,0.75
+            pnt->p = n * (1.0 + amplitude); // 0.9,0.75
         }
         else {
-            pnt->p = n * (1.0 - OFFSET);
+            pnt->p = n * (1.0 - amplitude);
         }
     }
 }
@@ -151,8 +168,11 @@ void raiseRidges(MyObject& obj, bool reverse)
 void MazeBalls::make_ball(bool ridge_reverse, const Vec3& translate)
 {
     unique_ptr<Mesh> load_mesh(new Mesh);
-    const char* filename = "C:\\Projects\\maze_balls\\src\\icosahedron.obj";
-    //const char* filename = "C:\\Projects\\maze_balls\\src\\cube.obj";
+    const char* filename;
+    if (m_params.base_shape == EBaseShape::icosahedron)
+        filename = "C:\\Projects\\maze_balls\\src\\icosahedron.obj";
+    else
+        filename = "C:\\Projects\\maze_balls\\src\\cube.obj";
     load_mesh->loadObj(filename);
     load_mesh->m_uniformColor = true;
 
@@ -162,24 +182,22 @@ void MazeBalls::make_ball(bool ridge_reverse, const Vec3& translate)
 
     meshToObj(*load_mesh, maze_obj);
     maze_obj.subdivide(true, true);
-    maze_obj.subdivide(true, true);
-    //maze_obj.subdivide(true, true);
-    //maze_obj.subdivide(true, true);
+    for(int i = 0; i < m_params.start_divs; ++i)
+        maze_obj.subdivide(true, true);
 
     MyObject ridges_obj = maze_obj; // the obj that has the vallies and ridges
     ridges_obj.subdivide(true, false);
 
-    srand(0);
+    srand(m_params.rand_seed);
     Graph graph;
     createGraph(maze_obj, ridges_obj.m_lasthelst, graph);
-    mazeDfs(maze_obj);
+    mazeDfs(maze_obj, &m_params);
 
     MyObject ridges_right = ridges_obj;
-    raiseRidges(ridges_right, ridge_reverse);
+    raiseRidges(ridges_right, ridge_reverse, m_params.ridge_amplitude);
 
-    ridges_right.subdivide(true, true);
-    ridges_right.subdivide(true, true);
-    ridges_right.subdivide(true, true);
+    for(int i = 0; i < m_params.post_divs; ++i)
+        ridges_right.subdivide(true, true);
 
     Mesh* w_mesh = new Mesh;
     w_mesh->m_uniformColor = true;
@@ -189,7 +207,7 @@ void MazeBalls::make_ball(bool ridge_reverse, const Vec3& translate)
 
     obj_alloc.clear();
     obj_alloc.checkMaxAlloc();
-    //w_mesh->save("C:\\Projects\\maze_balls\\output.obj", true);
+
 
 }
 

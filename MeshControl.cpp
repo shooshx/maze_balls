@@ -114,29 +114,29 @@ void MeshControl::myPaintGL(bool inChoise)
 
     ProgramUser u(&m_progFlat);
 
-    glEnable(GL_STENCIL_TEST);
+    if (m_doc->m_params.cross_section)
+    {
+        m_progFlat.b_clip_top.set(true);
+        glEnable(GL_STENCIL_TEST);
+        glStencilFunc(GL_ALWAYS, 1, 1);
+        glStencilOp(GL_KEEP, GL_INVERT, GL_INVERT);
 
-    /*
-    ** Use a stencil func/op which leaves a bit set in the stencil buffer
-    ** wherever the inside of the object is exposed by the clipplane.
-    */
-    glStencilFunc(GL_ALWAYS, 1, 1);
-    glStencilOp(GL_KEEP, GL_INVERT, GL_INVERT);
+        paintBall(zv, m_meshes[0], false);
+        paintBall(zv, m_meshes[1], true);
 
-    paintBall(zv, m_meshes[0], false);
-    paintBall(zv, m_meshes[1], true);
+        glStencilFunc(GL_EQUAL, 1, 1);
+        glStencilOp(GL_KEEP, GL_ZERO, GL_ZERO);
 
-    /*
-    ** Use a stencil func/op which passes only where there is a bit set
-    ** in the stencil buffer.  We also zero the bits as we go so that we
-    ** don't have to explicitly clear the stencil buffer each frame.
-    */
-    glStencilFunc(GL_EQUAL, 1, 1);
-    glStencilOp(GL_KEEP, GL_ZERO, GL_ZERO);
+        paintPlane();
 
-    paintPlane();
-
-    glDisable(GL_STENCIL_TEST);
+        glDisable(GL_STENCIL_TEST);
+    }
+    else 
+    {
+        m_progFlat.b_clip_top.set(false);
+        paintBall(zv, m_meshes[0], false);
+        paintBall(zv, m_meshes[1], true);
+    }
     
 }
 

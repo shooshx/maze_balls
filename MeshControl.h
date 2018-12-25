@@ -4,6 +4,7 @@
 
 #include "MyLib/Shaders.h"
 #include "Mesh.h"
+#include "MyLib/AutoParam.h"
 
 class MazeBalls;
 
@@ -31,7 +32,6 @@ public:
 public:
 
     FlatProgram m_progFlat; // for choice selection
-   // Vec3 m_modelmin, m_modelmax;
 
     struct MeshDisp {
         unique_ptr<Mesh> m;
