@@ -45,8 +45,11 @@ void MazeBalls::on_saveBut_clicked()
 {
     // m_meshHandler->save("C:\\Projects\\maze_balls\\output.obj");
 
-    m_meshHandler->m_meshes[0].m->save("C:\\Projects\\maze_balls\\output_0.obj", m_params.save_quads, false);
-    m_meshHandler->m_meshes[1].m->save("C:\\Projects\\maze_balls\\output_1.obj", m_params.save_quads, true);
+   // m_meshHandler->m_meshes[0].m->save("C:\\Projects\\maze_balls\\sphere_0.obj", m_params.save_quads, false);
+   // m_meshHandler->m_meshes[1].m->save("C:\\Projects\\maze_balls\\sphere_1.obj", m_params.save_quads, true);
+
+   m_meshHandler->m_meshes[0].m->saveJson("C:\\Projects\\maze_balls\\sphere_0.json", "sphere_0", false);
+   m_meshHandler->m_meshes[1].m->saveJson("C:\\Projects\\maze_balls\\sphere_1.json", "sphere_1", false);
 }
 
 std::function<void(void)> g_update_emit;

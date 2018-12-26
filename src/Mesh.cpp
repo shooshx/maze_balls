@@ -285,6 +285,40 @@ void Mesh::save(ofstream& f, int* vtx_offset, bool asQuads, bool flipNormal)
     *vtx_offset += m_vtx.size();
 }
 
+void Mesh::saveJson(const string& path, const string& varname, bool flipNormal)
+{
+    ofstream f(path.c_str());
+    if (!f.good()) {
+        cout << "Failed opening path for mesh save " << path << endl;
+        return;
+    }
+    f << "var " << varname << " = {\n \"vertexPositions\" : [";
+    for(int i = 0; i < m_vtx.size() - 1; ++i)
+        f << m_vtx[i] << ",";
+    f << m_vtx[m_vtx.size() - 1] << "],\n \"vertexNormals\" : [";
+    float sign = flipNormal ? -1 : 1;
+    for (int i = 0; i < m_normals.size() - 1; ++i)
+        f << sign * m_normals[i] << ",";
+    f << sign * m_normals[m_normals.size() - 1] << "],\n \"triangles\" : [";
+
+    if (m_type == QUADS) {
+        for (int i = 0; i < m_idx.size(); i += 4) {
+            f << m_idx[i] << "," << m_idx[i + 1] << "," << m_idx[i + 2] << ",";
+            f << m_idx[i] << "," << m_idx[i + 2] << "," << m_idx[i + 3] << ",";
+        }
+        f.seekp(-1, std::ios_base::cur); // erase the last comma
+    }
+    else {
+        for (int i = 0; i < m_idx.size() - 1; ++i) 
+            f << m_idx[i] << ",";
+        f << m_idx[m_idx.size() - 1];
+    }
+    f << "]\n}\n";
+
+    cout << "Wrote " << path << endl;
+}
+
+
 void Mesh::calcMinMax() {
     m_pmax = Vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     m_pmin = Vec3(FLT_MAX, FLT_MAX, FLT_MAX);

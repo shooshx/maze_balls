@@ -299,7 +299,10 @@ inline bool operator<(const Vec3& a, const Vec3& b)
     return a.z < b.z;
 }
 
-ostream& operator<<(ostream& o, const Vec3& v);
+inline ostream& operator<<(ostream& o, const Vec3& v) {
+    o << v.x << "," << v.y << "," << v.z;
+    return o;
+}
 
 struct Vec2
 {

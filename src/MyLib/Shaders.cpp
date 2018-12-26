@@ -20,7 +20,7 @@ uniform int force_uni_color;
 
 varying vec3 color;
 varying float lightIntensity;
-varying float trpos_y; // used for cutting in half in fragment shader
+varying float trpos_y, trpos_z; // used for cutting in half in fragment shader
 
 // used for piece selection, not build selection
 void main()
@@ -33,6 +33,7 @@ void main()
 
     vec4 trpos = modelMat * vec4(vtx, 1.0);
     trpos_y = trpos.y;
+    trpos_z = trpos.z;
     
     gl_Position = projMat * globalT * trpos;
 
@@ -50,7 +51,7 @@ precision highp float;
 uniform int b_clip_top;
 varying vec3 color;
 varying float lightIntensity;
-varying float trpos_y;
+varying float trpos_y, trpos_z;
 
 void main (void)
 {			

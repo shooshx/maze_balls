@@ -1,0 +1,320 @@
+<!doctype html>
+<html><head>
+
+<script id="vshader" type="x-shader">
+    precision highp float;
+    attribute vec3 aVtxPos;
+    attribute vec3 aVtxNormal;
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+    varying vec3 vTransformedNormal;
+    varying float vMvpos_z;
+    varying float vMvpos_y;
+
+    void main(void) {
+        vec4 mvpos = uMVMatrix * vec4(aVtxPos, 1.0);
+        vMvpos_y = mvpos.y;
+        vMvpos_z = mvpos.z;
+        gl_Position = uPMatrix * mvpos;
+        vec4 tnorm = uMVMatrix * vec4(aVtxNormal, 0.0);
+        vTransformedNormal = tnorm.xyz;
+    }
+</script>    
+
+<script id="fshader" type="x-shader">
+    precision highp float;
+    uniform vec3 uColor;
+    varying vec3 vTransformedNormal;
+    varying float vMvpos_z;
+    varying float vMvpos_y;
+    uniform float uClipElevate;
+    
+    void main(void) {
+        if (vMvpos_y + 0.2*vMvpos_z > uClipElevate + 0.0001)
+            discard;
+        vec3 normal = normalize(vTransformedNormal);
+        vec3 lightDir = vec3(0,1,1);
+        float c = dot(normal, lightDir);
+        vec3 col = uColor * c;
+        gl_FragColor = vec4(col, 1.0);
+    }
+</script>
+
+<script type="text/javascript" src="gl-matrix.js"></script>
+<script type="text/javascript" src="sphere_0.json"></script>
+<script type="text/javascript" src="sphere_1.json"></script>
+<script type="text/javascript">
+"use strict"    
+
+var mat4 = glMatrix.mat4    
+var vec3 = glMatrix.vec3
+    
+var gl = null, canvas = null
+var prog = null
+var model_0 = null, model_1 = null, model_plane = null
+ 
+function start() {
+    // init 3d view
+    canvas = document.getElementById("canvas")
+    gl = canvas.getContext("webgl", {stencil: 1})
+    
+    gl.clearColor(255.0, 255.0, 255.0, 1.0);
+    gl.clearDepth(1.0)
+    gl.enable(gl.DEPTH_TEST)
+    gl.disable(gl.CULL_FACE)
+    
+    // compile shaders
+    var makeShader = function(type, elemId) {
+        var s = gl.createShader(type)
+        gl.shaderSource(s, document.getElementById(elemId).text)
+        gl.compileShader(s)
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+            var err = gl.getShaderInfoLog(s)
+            throw "FAILED " + elemId + "\n" + err;
+        }
+        return s
+    }
+    
+    prog = gl.createProgram();
+    gl.attachShader(prog, makeShader(gl.VERTEX_SHADER, "vshader"))
+    gl.attachShader(prog, makeShader(gl.FRAGMENT_SHADER, "fshader"))
+    gl.linkProgram(prog)
+
+    prog.attrVtx = gl.getAttribLocation(prog, "aVtxPos");
+    gl.enableVertexAttribArray(prog.attrVtx);
+    prog.attrNorm = gl.getAttribLocation(prog, "aVtxNormal");
+    gl.enableVertexAttribArray(prog.attrNorm);
+    prog.uMVMat = gl.getUniformLocation(prog, "uMVMatrix");    
+    prog.uPMat = gl.getUniformLocation(prog, "uPMatrix");
+    prog.uColor = gl.getUniformLocation(prog, "uColor");
+    prog.uClipElevate = gl.getUniformLocation(prog, "uClipElevate");
+    gl.useProgram(prog)
+    
+    model_0 = loadModel(sphere_0)
+    model_1 = loadModel(sphere_1)
+    model_plane = loadModel(plane_def)
+
+    // init user input
+    rotMat = mat4.create()
+    mat4.identity(rotMat)
+    
+    var mousePressed = false
+    var lastX = 0, lastY = 0
+    document.onmousedown = function(e) {
+        mousePressed = true;
+        lastX = event.clientX;
+        lastY = event.clientY;
+    }
+    document.onmouseup = function(e) {
+        mousePressed = false;
+    }
+    document.onmousemove = function(e) {
+        if (!mousePressed)
+            return
+        var nowRot = mat4.clone(rotMat)
+        mat4.identity(rotMat)
+        mat4.rotateY(rotMat, rotMat, (event.clientX - lastX) / 100)
+        mat4.rotateX(rotMat, rotMat, (event.clientY - lastY) / 100)
+        mat4.multiply(rotMat, rotMat, nowRot)
+        lastX = event.clientX
+        lastY = event.clientY
+        requestAnimationFrame(draw)
+    }
+    
+    var in_slider = false
+    cut_slider.onmousedown = function() {
+        in_slider = true;
+    }
+    cut_slider.onmouseup = function(e) {
+        in_slider = false;
+    }
+    cut_slider.onmousemove = function(e) {
+        if (in_slider)
+            e.stopPropagation()
+    }
+    
+    cut_changed();
+    
+    // start drawing
+    requestAnimationFrame(draw)
+}
+
+
+
+function loadModel(cube)
+{
+    var model = {}
+    // create model
+    var vtxData = new Float32Array(cube.vertexPositions) //new Float32Array([0,0,0, 0.5,0,0, 0.5,0.5,0])
+    model.vtxBuf = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, model.vtxBuf)
+    gl.bufferData(gl.ARRAY_BUFFER, vtxData, gl.STATIC_DRAW);
+    model.vtxBuf.numItems = vtxData.length / 3
+    
+    var normalData = new Float32Array(cube.vertexNormals) 
+    model.normBuf = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, model.normBuf)
+    gl.bufferData(gl.ARRAY_BUFFER, normalData, gl.STATIC_DRAW);
+    model.normBuf.numItems = normalData.length / 3
+    
+    var iData = new Uint16Array(cube.triangles)
+    model.indices = gl.createBuffer()
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, iData, gl.STATIC_DRAW);
+    model.indices.numItems = iData.length
+    model.indices.type = gl.UNSIGNED_SHORT    
+    return model
+}
+
+
+var camera = { eye: [0,1,5], toPoint: [0,0,0], upDir: [0,1,0] }
+var rotMat = null
+
+var Z_F = 2
+var Y_F = 0.2*Z_F
+var plane_def = {
+     "vertexPositions" : 
+        [3, Y_F, -Z_F,
+         -3, -Y_F, Z_F,
+         -3, Y_F, -Z_F,
+         3, -Y_F, Z_F ],  
+     "vertexNormals": 
+        [ 0, 1.0, 0.2,
+          0, 1.0, 0.2,
+          0, 1.0, 0.2,
+          0, 1.0, 0.2,
+        ],     
+     "triangles" : 
+        [1, 2, 3,
+         3, 2, 0]
+}
+
+
+
+function drawModel(model) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, model.vtxBuf)
+    gl.vertexAttribPointer(prog.attrVtx, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, model.normBuf)
+    gl.vertexAttribPointer(prog.attrNorm, 3, gl.FLOAT, false, 0, 0);    
+    //gl.drawArrays(gl.TRIANGLES, 0, model.vtxBuf.numItems);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices)
+    gl.drawElements(gl.TRIANGLES, model.indices.numItems, model.indices.type, 0);
+}
+
+var move_vec = vec3.create()
+move_vec[0] = 1.0
+var scale_vec = vec3.create()
+scale_vec[0] = 1.0; scale_vec[1] = 1.0; scale_vec[2] = 1.0
+
+function drawBall(model, mv, scale_x, color) {
+    scale_vec[0] = scale_x
+    mat4.scale(mv, mv, scale_vec)
+    mat4.translate(mv, mv, move_vec)
+    mat4.multiply(mv, mv, rotMat)
+    
+    gl.uniformMatrix4fv(prog.uMVMat, false, mv);
+    gl.uniform3fv(prog.uColor, color);
+    drawModel(model)
+}
+
+var elevate_vec = vec3.create()
+
+function drawPlane(mv) {
+    //elevate_vec[1] = 0.19
+    mat4.translate(mv, mv, elevate_vec)
+    gl.uniformMatrix4fv(prog.uMVMat, false, mv);
+    drawModel(model_plane)
+}
+
+var RED = [1,0.5,0.5]
+var BLUE = [0.6,0.6,1]
+
+function stencil_print() {
+    gl.enable(gl.STENCIL_TEST);
+    gl.stencilFunc(gl.ALWAYS, 1, 1); // draw all, set stencil to 1
+    gl.stencilOp(gl.KEEP, gl.INVERT, gl.INVERT);
+}
+function stencil_cut() {
+    gl.stencilFunc(gl.EQUAL, 1, 1);  // draw only where stencil is 1
+    gl.stencilOp(gl.KEEP, gl.ZERO, gl.ZERO);
+}
+function stencil_clear() {
+    gl.clear(gl.STENCIL_BUFFER_BIT);
+    gl.disable(gl.STENCIL_TEST);
+}
+
+function draw() 
+{
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.STENCIL_BUFFER_BIT);
+    
+    var pr = mat4.create()
+    mat4.identity(pr)
+    mat4.perspective(pr, 40*Math.PI/180, canvas.width / canvas.height, 0.1, 100.0);
+    var lk = mat4.create()
+    mat4.lookAt(lk, camera.eye, camera.toPoint, camera.upDir)
+    mat4.multiply(pr, pr, lk)
+
+    gl.uniformMatrix4fv(prog.uPMat, false, pr);
+
+    var mv = mat4.create()
+    mat4.identity(mv)
+    
+    stencil_print()
+    drawBall(model_0, mat4.clone(mv),  1, RED)
+
+    stencil_cut()
+    drawPlane(mat4.clone(mv))
+    
+    stencil_clear()
+    
+    stencil_print()
+    drawBall(model_1, mat4.clone(mv), -1, BLUE)
+    
+    stencil_cut()
+    drawPlane(mat4.clone(mv))
+    
+    stencil_clear()
+
+    // next frame
+    //requestAnimationFrame(draw)
+}
+
+function cut_changed() {
+    var v = cut_slider.value / 100
+    elevate_vec[1] = v
+    gl.uniform1f(prog.uClipElevate, v)
+    
+    requestAnimationFrame(draw)
+}
+
+
+</script>
+<style>
+#center {
+    display: block;
+    position: relative;
+    margin: auto;
+    width: 950px;
+}
+#cut_slider {
+    display: inline;
+    position: absolute;
+    width: 20px;
+    height: 450px;
+    writing-mode: bt-lr; /* IE */
+    -webkit-appearance: slider-vertical; /* WebKit */
+    right: 0;
+    top: 100px;
+}
+</style>
+
+</head>
+<body onload="start();">
+    <div id="center">
+      <canvas id="canvas" width="900" height="650"></canvas>
+      <input class="slider" id="cut_slider" type="range" min="-100" max="120" value="120" orient="vertical" oninput="cut_changed()">
+    </div>
+</body>
+</html>

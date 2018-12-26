@@ -41,6 +41,7 @@ public:
     int numElem();
     void save(const string& path, bool asQuads, bool flipNormal);
     void save(ofstream& f, int* vtx_offset, bool asQuads, bool flipNormal);
+    void saveJson(const string& path, const string& varname, bool flipNormal);
     bool loadObj(const char* path);
 
     enum Type { NONE, LINES, TRIANGLES, QUADS, TRI_STRIP, TRI_FAN };
