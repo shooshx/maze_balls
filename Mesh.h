@@ -39,8 +39,8 @@ public:
 
     int elemSize();
     int numElem();
-    void save(const string& path, bool asObj);
-    void save(ofstream& f, int* vtx_offset, bool asObj);
+    void save(const string& path, bool asQuads, bool flipNormal);
+    void save(ofstream& f, int* vtx_offset, bool asQuads, bool flipNormal);
     bool loadObj(const char* path);
 
     enum Type { NONE, LINES, TRIANGLES, QUADS, TRI_STRIP, TRI_FAN };

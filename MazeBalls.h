@@ -16,22 +16,16 @@ ENUM_STRINGS(EBaseShape, "icosahedron", "cube")
 
 class Params : public ParamAggregate {
 public:
-    Params()
-        : cross_section(false, this)
-        , ridge_amplitude(0.11, this)
-        , rand_seed(0, this)
-        , straigt_steps(2, this)
-        , base_shape(EBaseShape::icosahedron, this)
-        , start_divs(1, this)
-        , post_divs(3, this)
-    {}
-    AutoParam<bool> cross_section;
-    AutoParam<float> ridge_amplitude;
-    AutoParam<int> rand_seed;
-    AutoParam<int> straigt_steps; // after how many steps randomize direction
-    AutoParam<EBaseShape> base_shape;
-    AutoParam<int> start_divs;  // how many subdivisions to do before DFS
-    AutoParam<int> post_divs;   // subdivs to do for smoothing the result
+    Params() : ParamAggregate("ShyApp", "maze_balls") { loadFromReg();}
+
+    AUTO_PARAM(bool, cross_section, false);
+    AUTO_PARAM(float, ridge_amplitude, 0.11);
+    AUTO_PARAM(int, rand_seed, 0);
+    AUTO_PARAM(int, straigt_steps, 2); // after how many steps randomize direction
+    AUTO_PARAM(EBaseShape, base_shape, EBaseShape::icosahedron);
+    AUTO_PARAM(int, start_divs, 1);  // how many subdivisions to do before DFS
+    AUTO_PARAM(int, post_divs, 3);   // subdivs to do for smoothing the result
+    AUTO_PARAM(bool, save_quads, true);
 };
 
 class MazeBalls : public QMainWindow
@@ -50,6 +44,9 @@ public:
 private slots:
     void on_runBut_clicked();
     void on_saveBut_clicked();
+    void on_resetBut_clicked() {
+        m_params.resetToDefault();
+    }
     void call_update_mesh();
 
 signals:

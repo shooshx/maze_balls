@@ -20,6 +20,7 @@ MazeBalls::MazeBalls(QWidget *parent)
     m_params.base_shape.mate(ui.shapeComboBox);
     m_params.start_divs.mate(ui.startDivsSpinBox);
     m_params.post_divs.mate(ui.postDivsSpinBox);
+    m_params.save_quads.mate(ui.saveQuadsCheckBox);
 
     connect(&m_params, &ParamAggregate::changed, [this]() {
         ui.glwidget->update();
@@ -44,8 +45,8 @@ void MazeBalls::on_saveBut_clicked()
 {
     // m_meshHandler->save("C:\\Projects\\maze_balls\\output.obj");
 
-    m_meshHandler->m_meshes[0].m->save("C:\\Projects\\maze_balls\\output_0.obj", true);
-    m_meshHandler->m_meshes[1].m->save("C:\\Projects\\maze_balls\\output_1.obj", true);
+    m_meshHandler->m_meshes[0].m->save("C:\\Projects\\maze_balls\\output_0.obj", m_params.save_quads, false);
+    m_meshHandler->m_meshes[1].m->save("C:\\Projects\\maze_balls\\output_1.obj", m_params.save_quads, true);
 }
 
 std::function<void(void)> g_update_emit;
@@ -54,7 +55,6 @@ std::function<void(void)> g_update_call;
 void MazeBalls::call_update_mesh() {
     g_update_call();
 }
-
 
 
 void meshToObj(const Mesh& mesh, MyObject& obj)

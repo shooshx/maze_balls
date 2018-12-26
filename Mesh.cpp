@@ -229,7 +229,7 @@ int Mesh::numElem() {
 }
 
 
-void Mesh::save(const string& path, bool asObj)
+void Mesh::save(const string& path, bool asQuads, bool flipNormal)
 {
     ofstream f(path.c_str());
     if (!f.good()) {
@@ -237,26 +237,23 @@ void Mesh::save(const string& path, bool asObj)
         return;
     }
     int vtx_offset = 0;
-    save(f, &vtx_offset, asObj);
+    save(f, &vtx_offset, asQuads, flipNormal);
     cout << "wrote " << path << endl;
 }
 
-void Mesh::save(ofstream& f, int* vtx_offset, bool asObj)
+void Mesh::save(ofstream& f, int* vtx_offset, bool asQuads, bool flipNormal)
 {
     M_ASSERT(m_vtx.size() > 0 && m_idx.size() > 0);
 
     // short hand format for unification
     for (int i = 0; i < m_vtx.size(); ++i) {
         Vec3& v = m_vtx[i];
-        Vec3& n = m_normals[i];
+        Vec3 n = m_normals[i];
+        if (flipNormal)
+            n.negate();
         //Vec2& t = m_mesh.m_texCoord[i];
-        if (asObj) {
-            f << "v " << v.x << " " << v.y << " " << v.z << "\n"; // obj
-            f << "vn " << n.x << " " << n.y << " " << n.z << "\n";
-        }
-        else {
-            f << "v "  << v.x << " " << v.y << " " << v.z << " " << n.x << " " << n.y << " " << n.z << "\n"; // << " " << t.x << " " << t.y << "\n";
-        }
+        f << "v " << v.x << " " << v.y << " " << v.z << "\n"; // obj
+        f << "vn " << n.x << " " << n.y << " " << n.z << "\n";
         
     }
 
@@ -266,17 +263,19 @@ void Mesh::save(ofstream& f, int* vtx_offset, bool asObj)
         if ((m_idx.size() % 4) != 0)
             throw std::runtime_error("bad size");
         for (int i = 0; i < m_idx.size(); i += 4) {
-            if (asObj) {
+            if (asQuads) {
                 f << "f " << m_idx[i] + offset + 1 << "//" << m_idx[i] + offset + 1 << " " 
-                          << m_idx[i + 1] + offset + 1 << "//" << m_idx[i + 1] + offset + 1 << " " 
-                          << m_idx[i + 2] + offset + 1 << "//" << m_idx[i + 2] + offset + 1 << "\n";  // obj
-                f << "f " << m_idx[i] + offset + 1 << "//" << m_idx[i] + offset + 1 << " " 
-                          << m_idx[i + 2] + offset + 1 << "//" << m_idx[i + 2] + offset + 1 << " " 
-                          << m_idx[i + 3] + offset + 1 << "//" << m_idx[i + 3] + offset + 1 << "\n";  // obj
-               // f << "f " << m_idx[i] + 1 << " " << m_idx[i + 2] + 1 << " " << m_idx[i + 3] + 1 << "\n"; // obj
+                            << m_idx[i + 1] + offset + 1 << "//" << m_idx[i + 1] + offset + 1 << " " 
+                            << m_idx[i + 2] + offset + 1 << "//" << m_idx[i + 2] + offset + 1 << " "  // obj
+                            << m_idx[i + 3] + offset + 1 << "//" << m_idx[i + 3] + offset + 1 << "\n";
             }
             else {
-                f << m_idx[i] << " " << m_idx[i + 1] << " " << m_idx[i + 2] << " " << m_idx[i + 3] << "\n";
+                f << "f " << m_idx[i] + offset + 1 << "//" << m_idx[i] + offset + 1 << " "
+                    << m_idx[i + 1] + offset + 1 << "//" << m_idx[i + 1] + offset + 1 << " "
+                    << m_idx[i + 2] + offset + 1 << "//" << m_idx[i + 2] + offset + 1 << "\n";  // obj
+                f << "f " << m_idx[i] + offset + 1 << "//" << m_idx[i] + offset + 1 << " "
+                    << m_idx[i + 2] + offset + 1 << "//" << m_idx[i + 2] + offset + 1 << " "
+                    << m_idx[i + 3] + offset + 1 << "//" << m_idx[i + 3] + offset + 1 << "\n";  // obj
             }
         }
     }

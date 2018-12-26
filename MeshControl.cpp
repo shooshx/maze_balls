@@ -186,7 +186,7 @@ void MeshControl::saveBall(const MeshDisp& meshdisp, ofstream& f, int* vtx_offse
 
     Mesh mcopy = *meshdisp.m;
     mcopy.transform(m_bgl->model.cur());
-    mcopy.save(f, vtx_offset, true);
+    mcopy.save(f, vtx_offset, m_doc->m_params.save_quads, false);
 
     m_bgl->model.pop();
 }
