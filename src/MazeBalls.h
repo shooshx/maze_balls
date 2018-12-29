@@ -44,9 +44,7 @@ public:
 private slots:
     void on_runBut_clicked();
     void on_saveBut_clicked();
-    void on_resetBut_clicked() {
-        m_params.resetToDefault();
-    }
+    void on_resetBut_clicked();
     void call_update_mesh();
 
 signals:

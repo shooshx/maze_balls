@@ -517,7 +517,9 @@ void MyObject::subdivide(bool smooth, bool clear_prev)
     cout << "   subdivided poly=" << nPolys << "  points=" << nPoints << "  time=" << (GetTickCount() - startTime) << " msec" << endl;
 }
 
-
+namespace topo {
+extern vector<int> tmp_intersect_polys;
+}
 
 void MyObject::toMesh(Mesh& mesh, bool quads_to_tri, bool normals, bool poly_reverse) 
 {
@@ -540,41 +542,53 @@ void MyObject::toMesh(Mesh& mesh, bool quads_to_tri, bool normals, bool poly_rev
                 }
                 //mesh.m_texCoord.push_back(Vec2(curpl.texAncs[pni].x, curpl.texAncs[pni].y));
                 mesh.m_color4.push_back(Vec4(curpn->col.r, curpn->col.g, curpn->col.b, 1.0));
+                mesh.m_name.push_back(Vec4b::fromName(index));
             }
             qidx[pni] = index;
             //if (quads)
             //mesh.m_idx.push_back(index);
         }
 
-        if (!poly_reverse) {
-            mesh.m_idx.push_back(qidx[0]);
-            mesh.m_idx.push_back(qidx[1]);
-            mesh.m_idx.push_back(qidx[2]);
-            mesh.m_idx.push_back(qidx[3]);
+        if (!quads_to_tri) {
+            if (!poly_reverse) {
+                mesh.m_idx.push_back(qidx[0]);
+                mesh.m_idx.push_back(qidx[1]);
+                mesh.m_idx.push_back(qidx[2]);
+                mesh.m_idx.push_back(qidx[3]);
+            }
+            else {
+                mesh.m_idx.push_back(qidx[3]);
+                mesh.m_idx.push_back(qidx[2]);
+                mesh.m_idx.push_back(qidx[1]);
+                mesh.m_idx.push_back(qidx[0]);
+            }
         }
         else {
-            mesh.m_idx.push_back(qidx[3]);
-            mesh.m_idx.push_back(qidx[2]);
-            mesh.m_idx.push_back(qidx[1]);
             mesh.m_idx.push_back(qidx[0]);
+            mesh.m_idx.push_back(qidx[1]);
+            mesh.m_idx.push_back(qidx[2]);
+            mesh.m_idx.push_back(qidx[0]);
+            mesh.m_idx.push_back(qidx[2]);
+            mesh.m_idx.push_back(qidx[3]);
         }
-
-        /*if (!quads) {
-            mesh.m_idx.push_back(qidx[0]);
-            mesh.m_idx.push_back(qidx[1]);
-            mesh.m_idx.push_back(qidx[2]);
-            mesh.m_idx.push_back(qidx[0]);
-            mesh.m_idx.push_back(qidx[2]);
-            mesh.m_idx.push_back(qidx[3]);
-        }*/
     }
 
-    bool isQuads = poly[0]->pnum == 4;
-
+    bool isQuads = poly[0]->pnum == 4 && !quads_to_tri;
     mesh.m_type = isQuads ? Mesh::QUADS : Mesh::TRIANGLES;
     mesh.m_hasNormals = normals;
     mesh.m_hasColors = true;
     mesh.m_hasIdx = true;
+    mesh.m_hasNames = true;
     mesh.calcMinMax();
+
+    cout << "*** Created mesh vtx=" << mesh.m_vtx.size() << " idx=" << mesh.m_idx.size() << endl;
+
+    mesh.calcNormals(poly_reverse);
+
+    //cout << "*** removing " << topo::tmp_intersect_polys.size() << " indices" << endl;
+    //for (int idx : topo::tmp_intersect_polys)
+    //    mesh.m_idx[idx] = 0;
+
+
     mesh.makeSelfBos(false);
 }

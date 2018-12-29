@@ -15,6 +15,7 @@ static uint glType(Mesh::Type t) {
 #endif
     case Mesh::TRI_STRIP: return GL_TRIANGLE_STRIP;
     case Mesh::TRI_FAN: return GL_TRIANGLE_FAN;
+    case Mesh::POINTS: return GL_POINTS;
     default: throw std::runtime_error("bad mesh type");
     }
 }
@@ -52,7 +53,14 @@ void Mesh::calcQuadNormals(bool minus) {
         for (int i = 0; i < m_normals.size(); ++i)
             m_normals[i].negate();
 
-    m_normBo.setData(m_normals);
+    //m_normBo.setData(m_normals);
+}
+
+void Mesh::calcNormals(bool minus) {
+    if (m_type == TRIANGLES)
+        calcTrianglesNormals();
+    else
+        calcQuadNormals(minus);
 }
 
 void Mesh::makeSelfBos(bool andDealloc) {
@@ -140,17 +148,18 @@ void Mesh::paint(bool names, bool force_uni_color) const
     //cout << "~1-----------" << endl;
     if (names) {
       //  cout << "~2" << endl;
-       /* if (lprog != nullptr) 
+        if (fprog != nullptr)
         {
+            fprog->force_uni_color.set(0);
             if (m_hasNames) {
-                lprog->colorAatt.setArr<Vec4b>(m_namesBo);
+                fprog->colorAatt.setArr<Vec4b>(m_namesBo);
             }
             else {
-                lprog->colorAatt.disableArr();
+                fprog->colorAatt.disableArr();
             }
-            lprog->tag.set(0);
-            lprog->tag.disableArr();
-        }*/
+            //lprog->tag.set(0);
+            //lprog->tag.disableArr();
+        }
     }
     else {
         fprog->force_uni_color.set(force_uni_color ? 1 : 0);
@@ -190,7 +199,7 @@ void Mesh::paint(bool names, bool force_uni_color) const
     mglCheckErrors("bufs");
 
     uint gltype = glType(m_type);
-    if (m_hasIdx) {
+    if (m_hasIdx && gltype != GL_POINTS) {
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_idxBo.m_buf);
         glDrawElements(gltype, m_idxBo.m_size, GL_UNSIGNED_INT, 0);
@@ -280,7 +289,11 @@ void Mesh::save(ofstream& f, int* vtx_offset, bool asQuads, bool flipNormal)
         }
     }
     else {
-        throw std::runtime_error("can't save triangles");
+        for (int i = 0; i < m_idx.size(); i += 3) {
+            f << "f " << m_idx[i] + offset + 1 << "//" << m_idx[i] + offset + 1 << " "
+                << m_idx[i + 1] + offset + 1 << "//" << m_idx[i + 1] + offset + 1 << " "
+                << m_idx[i + 2] + offset + 1 << "//" << m_idx[i + 2] + offset + 1 << "\n";  // obj
+        }
     }
     *vtx_offset += m_vtx.size();
 }

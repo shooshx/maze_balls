@@ -18,7 +18,7 @@ BaseGLWidget::BaseGLWidget()
     m_cullFace = true;
 
     m_fUseLight = false;
-    m_bSkewReset = true;
+    m_bSkewReset = false;
 
     m_zoomVal = 100;
 

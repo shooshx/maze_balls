@@ -19,10 +19,7 @@ void MeshControl::reCalcSlvMinMax()
 {
 
 }
-GLdouble clipPlane[4] = { 0.0, 0.0, 1.0, 0.0 };
-GLfloat clipPlaneNormal[3] = {
-    0.0F, 1.0F, 0.0F,
-};
+
 
 
 void makePlane(Mesh& m, float szX, float szZ) {
@@ -59,7 +56,7 @@ void MeshControl::initialized()
 
 
 
-void MeshControl::paintBall(float zv, const MeshDisp& meshdisp, bool mirrorX)
+void MeshControl::paintBall(bool inChoise, float zv, const MeshDisp& meshdisp, bool mirrorX)
 {
     //m_bgl->modelMinMax(meshdisp.m->m_pmin, meshdisp.m->m_pmax);
     m_bgl->model.push();
@@ -83,12 +80,32 @@ void MeshControl::paintBall(float zv, const MeshDisp& meshdisp, bool mirrorX)
     m_progFlat.lightPos.set(m_lightPos);
     m_progFlat.globalT.set(m_globalTransform);
 
-    //glEnable(GL_POLYGON_OFFSET_FILL);
-    //glPolygonOffset(1.0, 1.0);
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    if (!inChoise)
+    {
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(1.0, 1.0);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    meshdisp.m->m_uColor = Vec3(1.0, 0.4, 0.4);
-    meshdisp.m->paint(false, false);
+        meshdisp.m->m_uColor = Vec3(1.0, 0.4, 0.4);
+        meshdisp.m->paint(false, false);
+
+        /*glPolygonOffset(0, 0);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        meshdisp.m->m_uColor = Vec3(1.0, 0.3, 0.3);
+        meshdisp.m->paint(false, true);
+
+        glPolygonOffset(1.0, 1.0);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);*/
+    }
+    else
+    { // named point for each vertex
+        glPointSize(8);
+        auto typbk = meshdisp.m->m_type;
+        meshdisp.m->m_type = Mesh::POINTS;
+        meshdisp.m->paint(true, false);
+        meshdisp.m->m_type = typbk;
+    }
+
 }
 
 
@@ -121,29 +138,34 @@ void MeshControl::myPaintGL(bool inChoise)
         glStencilFunc(GL_ALWAYS, 1, 1);
         glStencilOp(GL_KEEP, GL_INVERT, GL_INVERT);
 
-        paintBall(zv, m_meshes[0], false);
-        paintBall(zv, m_meshes[1], true);
+        paintBall(inChoise, zv, m_meshes[0], false);
+        paintBall(inChoise, zv, m_meshes[1], true);
 
         glStencilFunc(GL_EQUAL, 1, 1);
         glStencilOp(GL_KEEP, GL_ZERO, GL_ZERO);
-
-        paintPlane();
+        
+        if (!inChoise)
+            paintPlane();
 
         glDisable(GL_STENCIL_TEST);
     }
     else 
     {
         m_progFlat.b_clip_top.set(false);
-        paintBall(zv, m_meshes[0], false);
-        paintBall(zv, m_meshes[1], true);
+        paintBall(inChoise, zv, m_meshes[0], false);
+        paintBall(inChoise, zv, m_meshes[1], true);
     }
     
 }
 
-void MeshControl::drawTargets(bool inChoise)
-{
-}
 
+
+bool MeshControl::scrDblClick(bool ctrlPressed, int x, int y)
+{
+    int ch = m_bgl->doChoise(x, y);
+    cout << "choice=" << ch + 1<< endl;
+    return true;
+}
 
 
 bool MeshControl::scrDrag(int keyModify, int dx, int dy)
@@ -166,6 +188,7 @@ bool MeshControl::scrDrag(int keyModify, int dx, int dy)
         m_globalTransform.rotate(dy, 1, 0, 0);
 
         m_globalTransform.mult(wmat);
+        m_bgl->invalidateChoice();
         return true;
     }
 

@@ -44,7 +44,7 @@ public:
     void saveJson(const string& path, const string& varname, bool flipNormal);
     bool loadObj(const char* path);
 
-    enum Type { NONE, LINES, TRIANGLES, QUADS, TRI_STRIP, TRI_FAN };
+    enum Type { NONE, LINES, TRIANGLES, QUADS, TRI_STRIP, TRI_FAN, POINTS };
     struct IdxBuf {
         IdxBuf(Type t) :m_type(t), m_enabled(true) {}
         vector<ushort> m_idx;
@@ -58,6 +58,7 @@ public:
     }
     void calcTrianglesNormals();
     void calcQuadNormals(bool minus);
+    void calcNormals(bool minus);
     void calcMinMax();
 
     struct CommonData {

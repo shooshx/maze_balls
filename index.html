@@ -1,6 +1,6 @@
 <!doctype html>
 <html><head>
-
+<meta charset="UTF-8">
 <script id="vshader" type="x-shader">
     precision highp float;
     attribute vec3 aVtxPos;
@@ -28,9 +28,11 @@
     varying float vMvpos_z;
     varying float vMvpos_y;
     uniform float uClipElevate;
+    uniform int uDoClip;
     
     void main(void) {
-        if (vMvpos_y + 0.2*vMvpos_z > uClipElevate + 0.0001)
+        // epsilon to avoid cutting the plane?
+        if (uDoClip == 1 && vMvpos_y  > uClipElevate + 0.0001)
             discard;
         vec3 normal = normalize(vTransformedNormal);
         vec3 lightDir = vec3(0,1,1);
@@ -40,7 +42,13 @@
     }
 </script>
 
-<script type="text/javascript" src="gl-matrix.js"></script>
+<script type="text/javascript" src="gl-matrix-min.js"></script>
+<script>
+function start() { // from topo_js
+  console.log("hey") 
+}
+</script>
+<script type="text/javascript" src="topo_js_main.js"></script>
 <script type="text/javascript" src="sphere_0.json"></script>
 <script type="text/javascript" src="sphere_1.json"></script>
 <script type="text/javascript">
@@ -52,18 +60,11 @@ var vec3 = glMatrix.vec3
 var gl = null, canvas = null
 var prog = null
 var model_0 = null, model_1 = null, model_plane = null
+var M0 = 0, M1 = 1
  
-function start() {
-    // init 3d view
-    canvas = document.getElementById("canvas")
-    gl = canvas.getContext("webgl", {stencil: 1})
-    
-    gl.clearColor(255.0, 255.0, 255.0, 1.0);
-    gl.clearDepth(1.0)
-    gl.enable(gl.DEPTH_TEST)
-    gl.disable(gl.CULL_FACE)
-    
-    // compile shaders
+function init_program()
+{
+     // compile shaders
     var makeShader = function(type, elemId) {
         var s = gl.createShader(type)
         gl.shaderSource(s, document.getElementById(elemId).text)
@@ -88,27 +89,45 @@ function start() {
     prog.uPMat = gl.getUniformLocation(prog, "uPMatrix");
     prog.uColor = gl.getUniformLocation(prog, "uColor");
     prog.uClipElevate = gl.getUniformLocation(prog, "uClipElevate");
+    prog.uDoClip = gl.getUniformLocation(prog, "uDoClip");
     gl.useProgram(prog)
-    
-    model_0 = loadModel(sphere_0)
-    model_1 = loadModel(sphere_1)
-    model_plane = loadModel(plane_def)
+}
 
-    // init user input
-    rotMat = mat4.create()
-    mat4.identity(rotMat)
+function setTransformMat(inst, mat) {
+    Module.setTransform_ext(inst, mat[0],mat[1],mat[2],mat[3],
+                     mat[4],mat[5],mat[6],mat[7],
+                     mat[8],mat[9],mat[10],mat[11],
+                     mat[12],mat[13],mat[14],mat[15])
+}
+
+// before the mouse is moved, do a gendle rotate animation
+var do_idle_rotate = true; 
+
+function idle_anim() {
+
+    if (!do_idle_rotate) 
+        return
+    mat4.rotateY(rotMat, rotMat, 0.3 / 100)
+    mat4.rotateX(rotMat, rotMat, 0.4 / 100)    
+    generate_lines_with_new_transform() 
+    requestAnimationFrame(draw)
     
+    setTimeout(idle_anim, 16)
+}
+
+function init_mouse_events()
+{
     var mousePressed = false
     var lastX = 0, lastY = 0
-    document.onmousedown = function(e) {
+    document.onmousedown = function(event) {
         mousePressed = true;
         lastX = event.clientX;
         lastY = event.clientY;
     }
-    document.onmouseup = function(e) {
+    document.onmouseup = function(event) {
         mousePressed = false;
     }
-    document.onmousemove = function(e) {
+    document.onmousemove = function(event) {
         if (!mousePressed)
             return
         var nowRot = mat4.clone(rotMat)
@@ -118,6 +137,10 @@ function start() {
         mat4.multiply(rotMat, rotMat, nowRot)
         lastX = event.clientX
         lastY = event.clientY
+               
+        generate_lines_with_new_transform()
+        
+        do_idle_rotate = false
         requestAnimationFrame(draw)
     }
     
@@ -133,10 +156,51 @@ function start() {
             e.stopPropagation()
     }
     
+    idle_anim();
+}
+
+function init_topograph()
+{
+    Module.loadMesh(M0, "sphere_0", true, false)
+    Module.initPlane_ext(M0, 0,1,0,0,0,0)
+    Module.loadMesh(M1, "sphere_1", true, false)
+    Module.initPlane_ext(M1, 0,1,0,0,0,0)
+}
+ 
+var test_ctx = null 
+function start_run() {
+    // init 3d view
+    canvas = document.getElementById("canvas")
+    gl = canvas.getContext("webgl", {stencil: 1})
+    
+    //test_ctx = test_canvas.getContext("2d")
+    
+    gl.clearColor(255.0, 255.0, 255.0, 1.0);
+    gl.clearDepth(1.0)
+    gl.enable(gl.DEPTH_TEST)
+    gl.disable(gl.CULL_FACE)
+    gl.lineWidth(3)
+    
+    init_program();
+    
+    model_0 = loadModel(sphere_0)
+    model_1 = loadModel(sphere_1)
+    model_plane = loadModel(plane_def)
+    
+    init_topograph()
+
+    // init user input
+    rotMat = mat4.create()
+    mat4.identity(rotMat)
+    
+    init_mouse_events();
+    
     cut_changed();
     
     // start drawing
     requestAnimationFrame(draw)
+    
+    
 }
 
 
@@ -167,11 +231,11 @@ function loadModel(cube)
 }
 
 
-var camera = { eye: [0,1,5], toPoint: [0,0,0], upDir: [0,1,0] }
+var camera = { eye: [0,3,4], toPoint: [0,0,0], upDir: [0,1,0] }
 var rotMat = null
 
 var Z_F = 2
-var Y_F = 0.2*Z_F
+var Y_F = 0.0*Z_F
 var plane_def = {
      "vertexPositions" : 
         [3, Y_F, -Z_F,
@@ -226,6 +290,33 @@ function drawPlane(mv) {
     drawModel(model_plane)
 }
 
+function drawLine(line) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, line.buf)
+    gl.vertexAttribPointer(prog.attrVtx, 3, gl.FLOAT, false, 0, 0);
+    for(var li in line.loops) {
+        var loop = line.loops[li]
+        gl.drawArrays(gl.LINE_LOOP, loop.start, loop.len)
+    }
+}
+
+function drawLines() {
+    var mv = mat4.create()
+    mat4.identity(mv)
+    mat4.translate(mv, mv, move_vec)
+    
+    gl.uniformMatrix4fv(prog.uMVMat, false, mv);
+    gl.disableVertexAttribArray(prog.attrNorm);
+
+    drawLine(line_0)
+    mat4.identity(mv)
+    mat4.scale(mv, mv, vec3.fromValues(-1,1,1))
+    mat4.translate(mv, mv, move_vec)
+    gl.uniformMatrix4fv(prog.uMVMat, false, mv);
+    drawLine(line_1)
+    
+    gl.enableVertexAttribArray(prog.attrNorm);
+}
+
 var RED = [1,0.5,0.5]
 var BLUE = [0.6,0.6,1]
 
@@ -276,22 +367,106 @@ function draw()
     drawPlane(mat4.clone(mv))
     
     stencil_clear()
+    
+    gl.uniform1i(prog.uDoClip, 0)
+    gl.disable(gl.DEPTH_TEST)
+    drawLines()
+    gl.uniform1i(prog.uDoClip, 1)
+    gl.enable(gl.DEPTH_TEST)
+        
+  
+    //var end = new Date().valueOf()
+    //console.log("elapsed=" + (end - start))
+    
 
-    // next frame
-    //requestAnimationFrame(draw)
 }
 
+// buf holds the vertices of several loops, loops is a list of {start:,len:} for every loop
+var line_0 = { buf:null, loops:null }
+var lines_sphere_0 = null;
+var line_1 = { buf:null, loops:null }
+var lines_sphere_1 = null;
+
+
+var cut_slider_v
 function cut_changed() {
     var v = cut_slider.value / 100
     elevate_vec[1] = v
     gl.uniform1f(prog.uClipElevate, v)
     
+    cut_slider_v = v
+    generate_lines()
     requestAnimationFrame(draw)
+}
+
+function generate_lines_with_new_transform()
+{
+    setTransformMat(M0, rotMat)
+    Module.initPlane_ext(M0, 0,1,0,0,0,0)            
+    setTransformMat(M1, rotMat)
+    Module.initPlane_ext(M1, 0,1,0,0,0,0)   
+        
+    generate_lines()
+}
+
+function generate_lines()
+{
+    var make_line_obj = function(in_data, into) {
+        var vtxData = new Float32Array(in_data)
+        if (into.buf != null)
+            gl.deleteBuffer(into.buf)
+        into.buf = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, into.buf)
+        gl.bufferData(gl.ARRAY_BUFFER, vtxData, gl.STATIC_DRAW);
+        into.buf.numItems = vtxData.length / 3    
+        into.loops = []
+        
+        var atloop = {start:0, len:0}
+        for(var i = 0; i < in_data.length; i += 3) {
+            // x==0,y==0 signify the cut of a loop
+            if (in_data[i] == 0 && in_data[i+1] == 0 && (in_data[i+2] > 1e20 || in_data[i+2] == 0)) {
+                into.loops.push(atloop)
+                atloop = {start:i/3+1, len:0}
+            }
+            else
+                ++atloop.len
+        }    
+    }
+    
+    var test_on_canvas = function(in_data) {
+        test_ctx.fillStyle = "white"
+        test_ctx.fillRect(0,0,800,800)
+        test_ctx.beginPath()    
+        for(var i = 0; i < in_data.length; i += 3) {
+            test_ctx.lineTo(in_data[i]*350+400,in_data[i+2]*350+400)
+        }
+        test_ctx.stroke()    
+    }
+
+    lines_sphere_0 = []
+    Module.planeIntersectLine_ext(M0, cut_slider_v + 0.00001, "lines_sphere_0") 
+    // 0.001 to avoid having the plane on an exact coordinate
+    lines_sphere_1 = []
+    Module.planeIntersectLine_ext(M1, cut_slider_v + 0.00001, "lines_sphere_1") 
+    
+    make_line_obj(lines_sphere_0, line_0)
+    make_line_obj(lines_sphere_1, line_1)
+    
+    //test_on_canvas(lines_sphere_1)
+    
 }
 
 
 </script>
 <style>
+body{
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
 #center {
     display: block;
     position: relative;
@@ -301,20 +476,69 @@ function cut_changed() {
 #cut_slider {
     display: inline;
     position: absolute;
-    width: 20px;
-    height: 450px;
+    width: 450px;
+    height: 12px;
     writing-mode: bt-lr; /* IE */
-    -webkit-appearance: slider-vertical; /* WebKit */
     right: 0;
     top: 100px;
+    transform: translate(225px,0) rotate(-90deg) translate(-225px,0);
+    
+    -webkit-appearance: none;
+    border-radius: 5px;
+    background: #afafaf;
+    outline: none;
+    opacity: 0.2;    
 }
+
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%; 
+    background: #555555;
+    cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #555555;
+    cursor: pointer;
+}
+
+@-moz-document url-prefix() {
+    #cut_slider {
+        display: inline;
+        position: absolute;
+        height: 450px;
+        width: 12px;
+        writing-mode: bt-lr; /* IE */
+        right: 0;
+        top: 100px;
+        transform: initial;
+        
+        -webkit-appearance: none;
+        border-radius: 5px;
+        background: #afafaf;
+        outline: none;
+        opacity: 0.2;    
+    }
+
+}
+
+
+
 </style>
 
 </head>
-<body onload="start();">
+<body onload="start_run();">
     <div id="center">
       <canvas id="canvas" width="900" height="650"></canvas>
       <input class="slider" id="cut_slider" type="range" min="-100" max="120" value="120" orient="vertical" oninput="cut_changed()">
+      <!--<canvas id="test_canvas" width="800" height="800"></canvas>-->
     </div>
 </body>
 </html>

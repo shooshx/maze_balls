@@ -17,6 +17,7 @@ attribute vec3 vtx;
 attribute vec3 colorAatt;
 attribute vec3 normal;
 uniform int force_uni_color;
+uniform int do_shading;
 
 varying vec3 color;
 varying float lightIntensity;
@@ -37,10 +38,14 @@ void main()
     
     gl_Position = projMat * globalT * trpos;
 
-
-	vec3 ECposition = vec3(modelMat * vec4(vtx, 1.0));
-	vec3 tnorm      = normalize(normalMat * normal); 
-	lightIntensity  = dot(normalize(lightPos - ECposition), tnorm);
+    //if (do_shading != 0) {
+	    vec3 ECposition = vec3(modelMat * vec4(vtx, 1.0));
+	    vec3 tnorm      = normalize(normalMat * normal); 
+	    lightIntensity  = dot(normalize(lightPos - ECposition), tnorm);
+    //}
+    //else {
+    //    lightIntensity = 1.0;
+    ///}
 }
 
 )---";

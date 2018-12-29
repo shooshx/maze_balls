@@ -53,11 +53,12 @@ public:
 protected:
     virtual void initialized() override;
     virtual void myPaintGL(bool inChoise) override;
-    virtual void drawTargets(bool inChoise);
+
 
     virtual bool scrDrag(int keyModify, int dx, int dy) override;
+    virtual bool scrDblClick(bool ctrlPressed, int x, int y) override;
 
-    void paintBall(float zv, const MeshDisp& meshdisp, bool mirrorX);
+    void paintBall(bool inChoise, float zv, const MeshDisp& meshdisp, bool mirrorX);
     void paintPlane();
 
     void transformForBall(float zv, bool mirrorX);
