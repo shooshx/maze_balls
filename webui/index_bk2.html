@@ -1,0 +1,670 @@
+<!doctype html>
+<html><head>
+
+<script id="vshader" type="x-shader">
+    precision highp float;
+    attribute vec3 aVtxPos;
+    attribute vec3 aVtxNormal;
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+    varying vec3 vTransformedNormal;
+    varying float vMvpos_z;
+    varying float vMvpos_y;
+
+    void main(void) {
+        vec4 mvpos = uMVMatrix * vec4(aVtxPos, 1.0);
+        vMvpos_y = mvpos.y;
+        vMvpos_z = mvpos.z;
+        gl_Position = uPMatrix * mvpos;
+        vec4 tnorm = uMVMatrix * vec4(aVtxNormal, 0.0);
+        vTransformedNormal = tnorm.xyz;
+        
+        gl_PointSize = 10.0;
+    }
+</script>    
+
+<script id="fshader" type="x-shader">
+    precision highp float;
+    uniform vec3 uColor;
+    varying vec3 vTransformedNormal;
+    varying float vMvpos_z;
+    varying float vMvpos_y;
+    uniform float uClipElevate;
+    
+    void main(void) {
+        if (uClipElevate < 100.0 && vMvpos_y > uClipElevate + 0.0051) // TBD don't clip plane
+            discard;
+        vec3 normal = normalize(vTransformedNormal);
+        vec3 lightDir = vec3(0,1,1);
+        float c = dot(normal, lightDir);
+        vec3 col = uColor * c;
+        gl_FragColor = vec4(col, 1.0);
+    }
+</script>
+
+<script id="tex_vshader" type="x-shader">
+precision highp float;
+attribute vec3 aVtxPos;
+attribute vec2 aTexcoord;
+
+uniform mat4 uMVMatrix;
+uniform mat4 uPMatrix;
+
+varying vec2 vTexcoord;
+
+void main() {
+  gl_Position = uPMatrix * uMVMatrix * vec4(aVtxPos, 1.0);;
+  vTexcoord = aTexcoord;
+}
+</script>
+<script id="tex_fshader" type="x-shader">
+precision highp float;
+varying vec2 vTexcoord;
+uniform sampler2D uTexture;
+
+void main() {
+   float w = 900.0, h = 650.0;
+   float s = texture2D(uTexture, vTexcoord).x +
+             texture2D(uTexture, vTexcoord + vec2(1.0/w, 0)).x + 
+             texture2D(uTexture, vTexcoord + vec2(0, 1.0/h)).x +   
+             texture2D(uTexture, vTexcoord + vec2(-1.0/w, 0)).x +    
+             texture2D(uTexture, vTexcoord + vec2(0, -1.0/h)).x;  
+
+ /*  s +=      texture2D(uTexture, vTexcoord + vec2(1.0/w, 1.0/w)).x + 
+             texture2D(uTexture, vTexcoord + vec2(-1.0/w, 1.0/w)).x +   
+             texture2D(uTexture, vTexcoord + vec2(1.0/w, -1.0/w)).x +    
+             texture2D(uTexture, vTexcoord + vec2(-1.0/w, -1.0/w)).x;            
+*/
+   if (s < 0.5 || s > 3.5) {
+       discard;
+       return;
+   }
+
+   gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);  // draw with alpha=0 to read later
+}
+</script>
+
+<script id="pnt_vshader" type="x-shader">
+attribute vec3 aVtxPos;
+uniform mat4 uPMatrix;
+
+void main(void) {
+    gl_Position = uPMatrix * vec4(aVtxPos, 1.0);
+    //gl_Position = vec4(0.5, 0.0, 0.0, 1.0);
+    gl_PointSize = 3.5;
+}
+</script>
+<script id="pnt_fshader" type="x-shader">
+precision mediump float;
+void main(void) {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    /*float dist = distance( gl_PointCoord, vec2(0.5) );
+    float alpha = 1.0 - smoothstep(0.20,0.9,dist);
+    gl_FragColor = vec4(0,0,0,alpha*0.3);/*/
+
+}
+</script>
+
+<script type="text/javascript" src="gl-matrix.js"></script>
+<script type="text/javascript" src="sphere_0.json"></script>
+<script type="text/javascript" src="sphere_1.json"></script>
+<script type="text/javascript">
+"use strict"    
+
+var mat4 = glMatrix.mat4    
+var vec3 = glMatrix.vec3
+    
+var gl = null, canvas = null
+var disp_prog = null, tex_prog = null, pnt_prog = null
+var current_prog = null
+var model_0 = null, model_1 = null, model_plane = null
+
+var WIDTH=900, HEIGHT=650
+var test_ctx = null
+
+// compile shaders
+function makeProgram(vtx_id, frag_id)
+{
+    var makeShader = function(type, elemId) {
+        var s = gl.createShader(type)
+        gl.shaderSource(s, document.getElementById(elemId).text)
+        gl.compileShader(s)
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+            var err = gl.getShaderInfoLog(s)
+            throw "FAILED " + elemId + "\n" + err;
+        }
+        return s
+    }
+    var prog = gl.createProgram();
+    gl.attachShader(prog, makeShader(gl.VERTEX_SHADER, vtx_id))
+    gl.attachShader(prog, makeShader(gl.FRAGMENT_SHADER, frag_id))
+    gl.linkProgram(prog)    
+    return prog
+}
+    
+function init_main_program() {
+    var prog = makeProgram("vshader", "fshader")
+
+    prog.attrVtx = gl.getAttribLocation(prog, "aVtxPos");
+    gl.enableVertexAttribArray(prog.attrVtx);
+    prog.attrNorm = gl.getAttribLocation(prog, "aVtxNormal");
+    gl.enableVertexAttribArray(prog.attrNorm);
+    prog.uMVMat = gl.getUniformLocation(prog, "uMVMatrix");    
+    prog.uPMat = gl.getUniformLocation(prog, "uPMatrix");
+    prog.uColor = gl.getUniformLocation(prog, "uColor");
+    prog.uClipElevate = gl.getUniformLocation(prog, "uClipElevate");
+    return prog
+}
+
+function init_tex_program() {
+    var prog = makeProgram("tex_vshader", "tex_fshader")
+    
+    prog.attrVtx = gl.getAttribLocation(prog, "aVtxPos");
+    gl.enableVertexAttribArray(prog.attrVtx);
+    prog.attrTexCoord = gl.getAttribLocation(prog, "aTexcoord");
+    gl.enableVertexAttribArray(prog.attrTexCoord);
+    prog.uMVMat = gl.getUniformLocation(prog, "uMVMatrix");    
+    prog.uPMat = gl.getUniformLocation(prog, "uPMatrix");    
+    prog.uTexture = gl.getUniformLocation(prog, "uTexture");
+    // uTexture defaults to 0 so no need to do anything
+    return prog
+}
+
+function init_pnt_program() {
+    var prog = makeProgram("pnt_vshader", "pnt_fshader")
+    prog.attrVtx = gl.getAttribLocation(prog, "aVtxPos");
+    gl.enableVertexAttribArray(prog.attrVtx);
+        prog.uPMat = gl.getUniformLocation(prog, "uPMatrix");
+    return prog
+}
+
+function use_program(prog) {
+    current_prog = prog
+    gl.useProgram(prog)
+}
+ 
+function start() {
+    // init 3d view
+    canvas = document.getElementById("canvas")
+    gl = canvas.getContext("webgl", {stencil: 1})
+    
+    //test_ctx = test_canvas.getContext("2d")
+    
+    gl.clearColor(255.0, 255.0, 255.0, 1.0);
+    gl.clearDepth(1.0)
+    gl.enable(gl.DEPTH_TEST)
+    gl.disable(gl.CULL_FACE)
+    //gl.blendFuncSeparate( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE );
+    //gl.enable(gl.BLEND);
+
+
+    disp_prog = init_main_program()
+    tex_prog = init_tex_program()
+    pnt_prog = init_pnt_program()
+    
+    off_screen_buf2 = createOffScreen(false) // second pass for the outline
+    off_screen_buf = createOffScreen(true) // first pass with balls
+    // want the texture created for this frame buffer to remain bound
+    
+    use_program(disp_prog)
+    
+    model_0 = loadModel(sphere_0)
+    model_1 = loadModel(sphere_1)
+    model_plane = loadModel(plane_def)
+
+    // init user input
+    rotMat = mat4.create()
+    mat4.identity(rotMat)
+    
+    var mousePressed = false
+    var lastX = 0, lastY = 0
+    document.onmousedown = function(e) {
+        mousePressed = true;
+        lastX = event.clientX;
+        lastY = event.clientY;
+    }
+    document.onmouseup = function(e) {
+        mousePressed = false;
+    }
+    document.onmousemove = function(e) {
+        if (!mousePressed)
+            return
+        var nowRot = mat4.clone(rotMat)
+        mat4.identity(rotMat)
+        mat4.rotateY(rotMat, rotMat, (event.clientX - lastX) / 100)
+        mat4.rotateX(rotMat, rotMat, (event.clientY - lastY) / 100)
+        mat4.multiply(rotMat, rotMat, nowRot)
+        lastX = event.clientX
+        lastY = event.clientY
+        requestAnimationFrame(draw)
+    }
+    
+    var in_slider = false
+    cut_slider.onmousedown = function() {
+        in_slider = true;
+    }
+    cut_slider.onmouseup = function(e) {
+        in_slider = false;
+    }
+    cut_slider.onmousemove = function(e) {
+        if (in_slider)
+            e.stopPropagation()
+    }
+    
+    cut_changed();
+    
+    // start drawing
+    requestAnimationFrame(draw)
+}
+
+var off_screen_buf = null
+var off_screen_buf2 = null
+
+// https://webglfundamentals.org/webgl/lessons/webgl-render-to-texture.html
+function createOffScreen(with_depth_stencil) 
+{
+    const tex = gl.createTexture();
+
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+     
+    // define size and format of level 0
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, // internalFormat
+                  WIDTH, HEIGHT, 0,
+                  gl.RGBA, gl.UNSIGNED_BYTE, null); // format, type
+
+    // set the filtering so we don't need mips
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    // Create and bind the framebuffer
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    // attach the texture as the first color attachment
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    
+    if (with_depth_stencil) {
+        // create a depth renderbuffer
+        const depthBuffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+        // make a depth buffer and the same size as the targetTexture
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, WIDTH, HEIGHT);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+    }
+        
+    var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (status != gl.FRAMEBUFFER_COMPLETE)
+        throw "bad frame buffer"
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return fb
+}
+
+
+function bind_offscreen(v) {
+    if (v == 0)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    else if (v == 1)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, off_screen_buf);
+    else if (v == 2)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, off_screen_buf2);        
+        
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.STENCIL_BUFFER_BIT);        
+}
+
+
+function loadModel(cube)
+{
+    var model = {}
+    // create model
+    var makeBuf = function (indata, item_size) {
+        var data = new Float32Array(indata)
+        var buf = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf)
+        gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+        buf.numItems = data.length / item_size    
+        return buf
+    }
+    model.vtxBuf = makeBuf(cube.vertexPositions, 3)
+    model.normBuf = makeBuf(cube.vertexNormals, 3)
+    if (cube.vertexTexCoords !== undefined)
+        model.texCoordBuf = makeBuf(cube.vertexTexCoords, 2)
+    
+    var iData = new Uint16Array(cube.triangles)
+    model.indices = gl.createBuffer()
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, iData, gl.STATIC_DRAW);
+    model.indices.numItems = iData.length
+    model.indices.type = gl.UNSIGNED_SHORT    
+    return model
+}
+
+function drawModel(model) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, model.vtxBuf)
+    gl.vertexAttribPointer(current_prog.attrVtx, 3, gl.FLOAT, false, 0, 0);
+    if (model.normBuf !== undefined && current_prog.attrNorm !== undefined) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, model.normBuf)
+        gl.enableVertexAttribArray(current_prog.attrNorm);
+        gl.vertexAttribPointer(current_prog.attrNorm, 3, gl.FLOAT, false, 0, 0);   
+    }
+    else {
+    //    gl.disableVertexAttribArray(current_prog.attrNorm);
+    }
+    
+    if (model.texCoordBuf !== undefined && current_prog.attrTexCoord != undefined) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, model.texCoordBuf)
+        gl.enableVertexAttribArray(current_prog.attrTexCoord);
+        gl.vertexAttribPointer(current_prog.attrTexCoord, 2, gl.FLOAT, false, 0, 0);  
+    }
+    else {
+   //     gl.disableVertexAttribArray(current_prog.attrTexCoord);
+    }
+    
+    //gl.drawArrays(gl.TRIANGLES, 0, model.vtxBuf.numItems);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices)
+    gl.drawElements(gl.TRIANGLES, model.indices.numItems, model.indices.type, 0);
+}
+
+
+
+var camera = { eye: [0,3,4], toPoint: [0,0,0], upDir: [0,1,0] }
+var rotMat = null
+
+var Z_F = 3
+var Y_F = 0.0*Z_F
+
+var plane_def = {
+     "vertexPositions" : 
+        [3, Y_F, -Z_F,
+         -3, -Y_F, Z_F,
+         -3, Y_F, -Z_F,
+         3, -Y_F, Z_F ],  
+     "vertexNormals": 
+        [ 0, 1.0, 0.2,
+          0, 1.0, 0.2,
+          0, 1.0, 0.2,
+          0, 1.0, 0.2,
+        ],     
+     "vertexTexCoords": 
+        [1,1, 0,0, 0,1, 1,0], 
+     "triangles" : 
+        [1, 2, 3,
+         3, 2, 0]
+}
+
+
+var move_vec = vec3.fromValues(1,0,0)
+var scale_vec = vec3.fromValues(1,1,1)
+
+function drawBall(model, mv, scale_x, color) {
+    scale_vec[0] = scale_x
+    mat4.scale(mv, mv, scale_vec)
+    mat4.translate(mv, mv, move_vec)
+    mat4.multiply(mv, mv, rotMat)
+    
+    gl.uniformMatrix4fv(current_prog.uMVMat, false, mv);
+    gl.uniform3fv(current_prog.uColor, color);
+    drawModel(model)
+}
+
+var elevate_vec = vec3.create()
+
+function drawPlane(mv, slightly_lower) {
+    var real_elev = vec3.clone(elevate_vec)
+    if (slightly_lower)
+        real_elev[1] -= 0.0002
+    mat4.translate(mv, mv, real_elev)
+    gl.uniformMatrix4fv(current_prog.uMVMat, false, mv);
+    drawModel(model_plane)
+}
+
+var RED = [1,0.5,0.5]
+var BLUE = [0.6,0.6,1]
+
+function stencil_print() {
+    gl.enable(gl.STENCIL_TEST);
+    gl.stencilFunc(gl.ALWAYS, 1, 1); // draw all, set stencil to 1
+    gl.stencilOp(gl.KEEP, gl.INVERT, gl.INVERT);
+}
+
+function stencil_cut() {
+    gl.stencilFunc(gl.EQUAL, 1, 1);  // draw only where stencil is 1
+    gl.stencilOp(gl.KEEP, gl.ZERO, gl.ZERO);
+}
+function stencil_clear() {
+    gl.clear(gl.STENCIL_BUFFER_BIT);
+    gl.disable(gl.STENCIL_TEST);
+}
+
+function vec3_fromArr(x,offset) {
+    return vec3.fromValues(x[offset+0],x[offset+1],x[offset+2])
+}
+
+function lookatPlane(lk) {
+    var pa = vec3_fromArr(plane_def.vertexPositions, 0)
+    var pb = vec3_fromArr(plane_def.vertexPositions, 3)
+    var pc = vec3_fromArr(plane_def.vertexPositions, 6)
+    var pd = vec3_fromArr(plane_def.vertexPositions, 9)
+    var pA = vec3.create()
+    vec3.sub(pA, pb, pa)    
+    var pB = vec3.create()
+    vec3.sub(pB, pc, pa)
+    var normal = vec3.create()
+    vec3.cross(normal, pA, pB)
+    vec3.normalize(normal, normal)
+    vec3.mul(normal, normal, vec3.fromValues(-5,-5,-5))
+    
+    var plane_mid = vec3.create()
+    vec3.add(plane_mid, plane_mid, pa)
+    vec3.add(plane_mid, plane_mid, pb)
+    vec3.add(plane_mid, plane_mid, pc)
+    vec3.add(plane_mid, plane_mid, pd)
+    vec3.div(plane_mid, plane_mid, vec3.fromValues(4,4,4))
+ 
+    var eye = vec3.create()
+    vec3.add(eye, plane_mid, normal)
+    
+    var updir = vec3.create()
+    vec3.sub(updir, pa, pd)
+    
+    mat4.lookAt(lk, eye, plane_mid, updir)
+}
+
+function draw_cut_balls(mv) 
+{
+    stencil_print()
+    drawBall(model_0, mat4.clone(mv),  1, RED)
+
+    stencil_cut()
+    drawPlane(mat4.clone(mv), true)
+    
+    stencil_clear()
+    
+    stencil_print()
+    drawBall(model_1, mat4.clone(mv), -1, BLUE)
+    
+    stencil_cut()
+    drawPlane(mat4.clone(mv), true)
+    
+    stencil_clear()
+}
+
+function draw_cut_balls_for_tex(mv) 
+{
+    stencil_print()
+    gl.colorMask(false, false, false, false); // don't draw the actual polygons of the balls since we only want the stencil
+    drawBall(model_0, mat4.clone(mv),  1, RED)
+    drawBall(model_1, mat4.clone(mv), -1, BLUE)
+    gl.colorMask(true, true, true, true);
+
+    stencil_cut()
+    gl.uniform3fv(current_prog.uColor, [0,0,0]);
+    
+    gl.uniform1f(current_prog.uClipElevate, 101)    
+    drawPlane(mat4.clone(mv))
+    var v = cut_slider.value / 100
+    gl.uniform1f(current_prog.uClipElevate, v)    
+    
+    stencil_clear()
+}
+
+var pixels_buf = new ArrayBuffer(WIDTH*HEIGHT*4)
+var WIDTH_RGBA = WIDTH * 4
+
+
+var points_buf = null;
+
+
+
+function points_from_trace(trace_buf_rgba, pr)
+{        
+    //var buf = new Uint8ClampedArray(pixels_buf)
+    //var img = new ImageData(buf, WIDTH, HEIGHT) 
+    //test_ctx.putImageData(img, 0, 0)
+    //return
+    
+    var pnt_data = []
+    
+    var add_coord = function(i) {
+        var pi = i / 4
+        var x = (pi % WIDTH) / WIDTH -0.5
+        var y = (pi / WIDTH | 0)/ HEIGHT -0.5 // i to y, in ints and then to float from 0-1
+        pnt_data.push(x*6, elevate_vec[1]+0.1, -y*6) 
+    }
+    
+    for(var i = 0; i < trace_buf_rgba.length; i += 4) // go over only R channel
+    {
+        if (trace_buf_rgba[i] == 0) {
+            if (trace_buf_rgba[i+1] == 0) {
+                add_coord(i)
+                add_coord(i+1)
+            }
+            if (trace_buf_rgba[i+WIDTH_RGBA] == 0) {
+                add_coord(i)
+                add_coord(i+WIDTH_RGBA)
+            }
+        }
+    }
+
+    var vtxData = new Float32Array(pnt_data)
+    if (points_buf != null)
+        gl.deleteBuffer(points_buf)
+        
+    points_buf = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, points_buf)
+    gl.bufferData(gl.ARRAY_BUFFER, vtxData, gl.STATIC_DRAW);
+    points_buf.numItems = vtxData.length / 3    
+    
+    //gl.bindBuffer(gl.ARRAY_BUFFER, points.points_buf)
+    //gl.pointSize(10)
+    gl.uniformMatrix4fv(current_prog.uPMat, false, pr);
+    gl.vertexAttribPointer(current_prog.attrVtx, 3, gl.FLOAT, false, 0, 0);
+    
+    gl.drawArrays(gl.LINES, 0, points_buf.numItems)
+    
+    
+}
+
+
+
+function draw() 
+{
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.STENCIL_BUFFER_BIT);   
+    
+    var pr = mat4.create()
+    mat4.identity(pr)
+    mat4.perspective(pr, 40*Math.PI/180, canvas.width / canvas.height, 0.1, 100.0);
+    var lk1 = mat4.create()
+    mat4.lookAt(lk1, camera.eye, camera.toPoint, camera.upDir)
+    mat4.multiply(pr, pr, lk1)
+
+    var pr_tex = mat4.create()
+    mat4.identity(pr_tex)
+    mat4.ortho(pr_tex, -3, 3, -3, 3, -3, 10)
+    var lk2 = mat4.create()
+    lookatPlane(lk2)
+    mat4.multiply(pr_tex, pr_tex, lk2)
+    
+    
+    var mv = mat4.create()
+    mat4.identity(mv)
+    
+    // paint the texture - offscreen stensil of cut
+    use_program(disp_prog)
+    gl.uniformMatrix4fv(current_prog.uPMat, false, pr_tex);
+    //gl.clearColor(1, 1, 1, 1)
+    bind_offscreen(1)
+    draw_cut_balls_for_tex(mv)
+    //gl.clearColor(0.5, 0.5, 0.5, 1.0)
+
+    // offscreen outline of cut
+    bind_offscreen(2)
+    use_program(tex_prog)
+    gl.uniformMatrix4fv(current_prog.uPMat, false, pr_tex);
+    drawPlane(mat4.clone(mv))
+    var data_read = new Uint8Array(pixels_buf)
+    gl.readPixels(0, 0, WIDTH, HEIGHT, gl.RGBA, gl.UNSIGNED_BYTE, data_read, 0)
+
+    bind_offscreen(0)
+    
+    // paint main display
+    use_program(disp_prog)
+    gl.uniformMatrix4fv(current_prog.uPMat, false, pr);
+    draw_cut_balls(mv)
+
+    use_program(pnt_prog)
+    //gl.disableVertexAttribArray(current_prog.attrNorm);
+    gl.disable(gl.DEPTH_TEST)
+    points_from_trace(data_read, pr)
+    //gl.enableVertexAttribArray(current_prog.attrNorm);
+    gl.enable(gl.DEPTH_TEST)
+
+    //use_program(disp_prog)
+    
+    // paint the texture (test for now)
+
+    // next frame
+    //requestAnimationFrame(draw)
+}
+
+function cut_changed() {
+    var v = cut_slider.value / 100
+    elevate_vec[1] = v
+    gl.uniform1f(current_prog.uClipElevate, v)
+    
+    requestAnimationFrame(draw)
+}
+
+
+</script>
+<style>
+#center {
+    display: block;
+    position: relative;
+    margin: auto;
+    width: 950px;
+}
+#cut_slider {
+    display: inline;
+    position: absolute;
+    width: 20px;
+    height: 450px;
+    writing-mode: bt-lr; /* IE */
+    -webkit-appearance: slider-vertical; /* WebKit */
+    right: 0;
+    top: 100px;
+}
+</style>
+
+</head>
+<body onload="start();">
+    <div id="center">
+      <canvas id="canvas" width="900" height="650"></canvas>
+      <input class="slider" id="cut_slider" type="range" min="-100" max="120" value="10" orient="vertical" oninput="cut_changed()">
+    </div>
+</body>
+</html>
