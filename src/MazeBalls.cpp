@@ -21,6 +21,12 @@ MazeBalls::MazeBalls(QWidget *parent)
     m_params.start_divs.mate(ui.startDivsSpinBox);
     m_params.post_divs.mate(ui.postDivsSpinBox);
     m_params.save_quads.mate(ui.saveQuadsCheckBox);
+    m_params.wireframe.mate(ui.wireCheckBox);
+    m_params.color_maze.mate(ui.colorMazeCheckBox);
+    m_params.tri_mesh.mate(ui.meshTriCheckBox);
+    m_params.show_maze_mesh.mate(ui.mazeMeshCheckBox);
+    m_params.smooth_start_div.mate(ui.smoothStartDivCheck);
+    m_params.smooth_post_div.mate(ui.smoothPostDivCheck);
 
     connect(&m_params, &ParamAggregate::changed, [this]() {
         ui.glwidget->update();
@@ -122,7 +128,8 @@ struct DfsState {
 void recDfs(MyPolygon* p, DfsState* state) 
 {
     p->visited = true;
-    //p->f->col = Vec3(1.0, 0.0, 0.0);
+    if (state->params->color_maze)
+        p->f->col = Vec3(0.0, 0.0, 1.0);
     p->f->touched = true;
 
     //g_update_emit();
@@ -137,11 +144,12 @@ void recDfs(MyPolygon* p, DfsState* state)
     }
 
     HalfEdge* he = start_he;
-    for(int i = 0; i < 4; ++i) {
+    for(int i = 0; i < p->pnum; ++i) {
         he = he->next;
         if (!he->pair->poly->visited) {
             he->edge->walled = false;
-            //he->edgePoint->col = Vec3(1.0, 0.0, 0.0);
+            if (state->params->color_maze)
+                he->edgePoint->col = Vec3(0.0, 0.0, 1.0);
             he->edgePoint->touched = true;
             recDfs(he->pair->poly, state);
         }
@@ -159,16 +167,26 @@ void mazeDfs(MyObject& obj, Params* params)
 //#define OFFSET (0.085)
 //#define OFFSET (0.11)
 
-void raiseRidges(MyObject& obj, bool reverse, float amplitude)
+void raiseRidges(MyObject& obj, bool reverse, float amplitude, bool smooth)
 {
     for(auto& pnt: obj.points) {
         Vec3 n = pnt->p.unitized();
         pnt->n = n;
-        if (pnt->touched == reverse) { // xor
-            pnt->p = n * (1.0 + amplitude); // 0.9,0.75
+        if (smooth) {
+            if (pnt->touched == reverse) { // xor
+                pnt->p = n * (1.0 + amplitude); // 0.9,0.75
+            }
+            else {
+                pnt->p = n * (1.0 - amplitude);
+            }
         }
         else {
-            pnt->p = n * (1.0 - amplitude);
+            if (pnt->touched == reverse) { 
+                pnt->p += n * amplitude;
+            }
+            else {
+                pnt->p += n * -amplitude;
+            }
         }
     }
 }
@@ -190,12 +208,12 @@ void MazeBalls::make_ball(bool ridge_reverse, const Vec3& translate)
     //maze_obj.toMesh(*w_mesh, false, false);
 
     meshToObj(*load_mesh, maze_obj);
-    maze_obj.subdivide(true, true);
+    //maze_obj.subdivide(true, true);
     for(int i = 0; i < m_params.start_divs; ++i)
-        maze_obj.subdivide(true, true);
+        maze_obj.subdivide(m_params.smooth_start_div, true);
 
     MyObject ridges_obj = maze_obj; // the obj that has the vallies and ridges
-    ridges_obj.subdivide(true, false);
+    ridges_obj.subdivide(m_params.smooth_start_div, false);
 
     srand(m_params.rand_seed);
     Graph graph;
@@ -203,14 +221,15 @@ void MazeBalls::make_ball(bool ridge_reverse, const Vec3& translate)
     mazeDfs(maze_obj, &m_params);
 
     MyObject ridges_right = ridges_obj;
-    raiseRidges(ridges_right, ridge_reverse, m_params.ridge_amplitude);
+    raiseRidges(ridges_right, ridge_reverse, m_params.ridge_amplitude, m_params.smooth_start_div);
 
     for(int i = 0; i < m_params.post_divs; ++i)
-        ridges_right.subdivide(true, true);
+        ridges_right.subdivide(m_params.smooth_post_div, true);
 
     Mesh* w_mesh = new Mesh;
     w_mesh->m_uniformColor = true;
-    ridges_right.toMesh(*w_mesh, true/*triangles*/, true, ridge_reverse);
+    MyObject* obj_to_mesh = m_params.show_maze_mesh ? &maze_obj : &ridges_right;
+    obj_to_mesh->toMesh(*w_mesh, m_params.tri_mesh, true, ridge_reverse);
     
 
     m_meshHandler->addMesh(w_mesh, translate);

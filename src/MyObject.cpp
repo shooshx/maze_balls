@@ -531,7 +531,7 @@ void MyObject::toMesh(Mesh& mesh, bool quads_to_tri, bool normals, bool poly_rev
     for(int pli = 0; pli < nPolys; ++pli) //polygons
     {
         MyPolygon &curpl = *poly[pli];
-        int qidx[4];
+        int qidx[4] = {0};
         for(int pni = 0; pni < curpl.pnum; ++pni) //points
         {
             MyPoint *curpn = curpl.vtx[pni];
@@ -549,27 +549,35 @@ void MyObject::toMesh(Mesh& mesh, bool quads_to_tri, bool normals, bool poly_rev
             //mesh.m_idx.push_back(index);
         }
 
-        if (!quads_to_tri) {
-            if (!poly_reverse) {
-                mesh.m_idx.push_back(qidx[0]);
-                mesh.m_idx.push_back(qidx[1]);
-                mesh.m_idx.push_back(qidx[2]);
-                mesh.m_idx.push_back(qidx[3]);
+        if (curpl.pnum == 4)
+        {
+            if (!quads_to_tri) {
+                if (!poly_reverse) {
+                    mesh.m_idx.push_back(qidx[0]);
+                    mesh.m_idx.push_back(qidx[1]);
+                    mesh.m_idx.push_back(qidx[2]);
+                    mesh.m_idx.push_back(qidx[3]);
+                }
+                else {
+                    mesh.m_idx.push_back(qidx[3]);
+                    mesh.m_idx.push_back(qidx[2]);
+                    mesh.m_idx.push_back(qidx[1]);
+                    mesh.m_idx.push_back(qidx[0]);
+                }
             }
             else {
-                mesh.m_idx.push_back(qidx[3]);
-                mesh.m_idx.push_back(qidx[2]);
-                mesh.m_idx.push_back(qidx[1]);
                 mesh.m_idx.push_back(qidx[0]);
+                mesh.m_idx.push_back(qidx[1]);
+                mesh.m_idx.push_back(qidx[2]);
+                mesh.m_idx.push_back(qidx[0]);
+                mesh.m_idx.push_back(qidx[2]);
+                mesh.m_idx.push_back(qidx[3]);
             }
         }
         else {
             mesh.m_idx.push_back(qidx[0]);
             mesh.m_idx.push_back(qidx[1]);
             mesh.m_idx.push_back(qidx[2]);
-            mesh.m_idx.push_back(qidx[0]);
-            mesh.m_idx.push_back(qidx[2]);
-            mesh.m_idx.push_back(qidx[3]);
         }
     }
 

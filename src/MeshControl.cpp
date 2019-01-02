@@ -89,13 +89,16 @@ void MeshControl::paintBall(bool inChoise, float zv, const MeshDisp& meshdisp, b
         meshdisp.m->m_uColor = Vec3(1.0, 0.4, 0.4);
         meshdisp.m->paint(false, false);
 
-        /*glPolygonOffset(0, 0);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        meshdisp.m->m_uColor = Vec3(1.0, 0.3, 0.3);
-        meshdisp.m->paint(false, true);
+        if (m_doc->m_params.wireframe) {
+            glLineWidth(3);
+            glPolygonOffset(0, 0);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            meshdisp.m->m_uColor = Vec3(1.0, 0.0, 0.0);
+            meshdisp.m->paint(false, true);
 
-        glPolygonOffset(1.0, 1.0);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);*/
+            glPolygonOffset(1.0, 1.0);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
     }
     else
     { // named point for each vertex
@@ -155,6 +158,7 @@ void MeshControl::myPaintGL(bool inChoise)
         paintBall(inChoise, zv, m_meshes[0], false);
         paintBall(inChoise, zv, m_meshes[1], true);
     }
+
     
 }
 

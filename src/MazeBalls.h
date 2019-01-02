@@ -23,9 +23,15 @@ public:
     AUTO_PARAM(int, rand_seed, 0);
     AUTO_PARAM(int, straigt_steps, 2); // after how many steps randomize direction
     AUTO_PARAM(EBaseShape, base_shape, EBaseShape::icosahedron);
-    AUTO_PARAM(int, start_divs, 1);  // how many subdivisions to do before DFS
+    AUTO_PARAM(int, start_divs, 2);  // how many subdivisions to do before DFS
     AUTO_PARAM(int, post_divs, 3);   // subdivs to do for smoothing the result
     AUTO_PARAM(bool, save_quads, true);
+    AUTO_PARAM(bool, wireframe, false);
+    AUTO_PARAM(bool, color_maze, false);
+    AUTO_PARAM(bool, tri_mesh, false);
+    AUTO_PARAM(bool, show_maze_mesh, false);
+    AUTO_PARAM(bool, smooth_start_div, true);
+    AUTO_PARAM(bool, smooth_post_div, true);
 };
 
 class MazeBalls : public QMainWindow
