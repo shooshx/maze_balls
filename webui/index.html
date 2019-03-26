@@ -109,13 +109,14 @@ function setTransformMat(inst, mat) {
 
 // before the mouse is moved, do a gendle rotate animation
 var do_idle_rotate = true; 
+var speed_f = 1.0
 
 function idle_anim() {
 
     if (!do_idle_rotate) 
         return
-    mat4.rotateY(rotMat, rotMat, 0.3 / 100)
-    mat4.rotateX(rotMat, rotMat, 0.4 / 100)    
+    mat4.rotateY(rotMat, rotMat, 0.3 / 100 * speed_f)
+    mat4.rotateX(rotMat, rotMat, 0.4 / 100 * speed_f)    
     generate_lines_with_new_transform() 
     requestAnimationFrame(draw)
     
@@ -173,6 +174,24 @@ function init_topograph()
     Module.loadMesh(M1, "sphere_1", true, false)
     Module.initPlane_ext(M1, 0,1,0,0,0,0)
 }
+
+function parse_url()
+{
+    var url = new URL(window.location.href)
+    for (var p of url.searchParams.entries()) {
+        try {
+            if (p[0] == 'speed')
+                speed_f = parseFloat(p[1])
+            else if (p[0] == 'cut') {
+                var cutf = parseFloat(p[1]) // 0-1
+                cutf = ((cutf * 200) - 100) // -100 - 100
+                cut_slider.value = cutf
+                cut_changed()
+            }
+        }
+        catch(err) {}
+    }
+}
  
 var test_ctx = null 
 function start_run() {
@@ -203,6 +222,8 @@ function start_run() {
     init_mouse_events();
     
     cut_changed();
+    
+    parse_url()
     
     // start drawing
     requestAnimationFrame(draw)
